@@ -1,0 +1,87 @@
+{
+  "name": "webmcp-sdk",
+  "version": "0.4.0",
+  "description": "The developer toolkit that makes any website agent-ready with WebMCP. TypeScript-first, framework adapters, security middleware, testing utilities.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.mjs",
+      "require": "./dist/security.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.mjs",
+      "require": "./dist/testing.js"
+    },
+    "./middleware/express": {
+      "types": "./dist/middleware/express.d.ts",
+      "import": "./dist/middleware/express.mjs",
+      "require": "./dist/middleware/express.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run --root .",
+    "test:watch": "vitest --root .",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run typecheck",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "webmcp",
+    "mcp",
+    "ai-agents",
+    "chrome",
+    "web-standard",
+    "model-context-protocol",
+    "agent-ready",
+    "browser-api",
+    "ai",
+    "llm",
+    "tools",
+    "w3c",
+    "navigator-modelcontext",
+    "agentic-web",
+    "chrome-146",
+    "tool-use"
+  ],
+  "author": "up2itnow",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/up2itnow/webmcp-sdk"
+  },
+  "homepage": "https://github.com/up2itnow/webmcp-sdk#readme",
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.0.0",
+    "@types/react": "^19.0.0"
+  }
+}

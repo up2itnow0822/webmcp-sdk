@@ -1,0 +1,172 @@
+"use strict";
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/security.ts
+var security_exports = {};
+__export(security_exports, {
+  RateLimiter: () => RateLimiter,
+  sanitizeInput: () => sanitizeInput,
+  withConfirmation: () => withConfirmation,
+  withSecurity: () => withSecurity
+});
+module.exports = __toCommonJS(security_exports);
+var RateLimiter = class {
+  constructor(config) {
+    this.invocations = [];
+    this.config = {
+      maxInvocations: config.maxInvocations,
+      windowMs: config.windowMs ?? 6e4,
+      message: config.message ?? "Rate limit exceeded. Please try again later."
+    };
+  }
+  check() {
+    const now = Date.now();
+    const windowStart = now - this.config.windowMs;
+    this.invocations = this.invocations.filter((t) => t > windowStart);
+    const remaining = Math.max(0, this.config.maxInvocations - this.invocations.length);
+    const resetMs = this.invocations.length > 0 ? this.invocations[0] + this.config.windowMs - now : 0;
+    if (this.invocations.length >= this.config.maxInvocations) {
+      return { allowed: false, remaining: 0, resetMs };
+    }
+    this.invocations.push(now);
+    return { allowed: true, remaining: remaining - 1, resetMs };
+  }
+  reset() {
+    this.invocations = [];
+  }
+};
+var HTML_TAG_REGEX = /<[^>]*>/g;
+var CONTROL_CHAR_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+function sanitizeValue(value, options, depth) {
+  if (depth > options.maxDepth) {
+    return void 0;
+  }
+  if (typeof value === "string") {
+    let sanitized = value;
+    if (options.stripHtml) {
+      sanitized = sanitized.replace(HTML_TAG_REGEX, "");
+    }
+    if (options.stripControlChars) {
+      sanitized = sanitized.replace(CONTROL_CHAR_REGEX, "");
+    }
+    if (sanitized.length > options.maxStringLength) {
+      sanitized = sanitized.slice(0, options.maxStringLength);
+    }
+    return sanitized;
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, options.maxArrayLength).map((v) => sanitizeValue(v, options, depth + 1));
+  }
+  if (typeof value === "object" && value !== null) {
+    const sanitized = {};
+    for (const [k, v] of Object.entries(value)) {
+      sanitized[k] = sanitizeValue(v, options, depth + 1);
+    }
+    return sanitized;
+  }
+  return value;
+}
+function sanitizeInput(input, options = {}) {
+  const opts = {
+    stripHtml: options.stripHtml ?? true,
+    maxStringLength: options.maxStringLength ?? 1e4,
+    maxArrayLength: options.maxArrayLength ?? 100,
+    maxDepth: options.maxDepth ?? 5,
+    stripControlChars: options.stripControlChars ?? true
+  };
+  return sanitizeValue(input, opts, 0);
+}
+function withSecurity(tool, config) {
+  const rateLimiter = config.rateLimit ? new RateLimiter(config.rateLimit) : null;
+  const blockedRegexes = (config.blockedPatterns ?? []).map((p) => new RegExp(p, "i"));
+  return {
+    ...tool,
+    handler: async (input) => {
+      let sanitized = false;
+      let blocked = false;
+      if (rateLimiter) {
+        const check = rateLimiter.check();
+        if (!check.allowed) {
+          throw new Error(rateLimiter["config"].message);
+        }
+      }
+      let processedInput = input;
+      if (config.sanitize) {
+        processedInput = sanitizeInput(
+          input,
+          config.sanitize
+        );
+        sanitized = true;
+      }
+      const inputStr = JSON.stringify(processedInput);
+      for (const regex of blockedRegexes) {
+        if (regex.test(inputStr)) {
+          blocked = true;
+          if (config.audit && config.onAudit) {
+            config.onAudit({
+              toolName: tool.name,
+              input,
+              timestamp: Date.now(),
+              sanitized,
+              blocked
+            });
+          }
+          throw new Error(`Input blocked by security policy`);
+        }
+      }
+      if (config.audit && config.onAudit) {
+        config.onAudit({
+          toolName: tool.name,
+          input: processedInput,
+          timestamp: Date.now(),
+          sanitized,
+          blocked
+        });
+      }
+      return tool.handler(processedInput);
+    }
+  };
+}
+function withConfirmation(tool, reason) {
+  return {
+    ...tool,
+    annotations: {
+      ...tool.annotations,
+      destructiveHint: true,
+      confirmationHint: true
+    },
+    handler: async (input) => {
+      if (typeof navigator !== "undefined" && navigator.modelContext) {
+        const confirmed = await navigator.modelContext.requestUserInteraction({ reason });
+        if (!confirmed) {
+          throw new Error("User declined confirmation for destructive action");
+        }
+      }
+      return tool.handler(input);
+    }
+  };
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  RateLimiter,
+  sanitizeInput,
+  withConfirmation,
+  withSecurity
+});
+//# sourceMappingURL=security.js.map
