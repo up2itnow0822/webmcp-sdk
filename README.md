@@ -134,6 +134,36 @@ Mastra's agent discovery requires config files and manual wiring. WebMCP auto-di
 
 ---
 
+
+## Relationship to the W3C WebMCP Standard
+
+Google shipped WebMCP (Web Model Context Protocol) in Chrome 146 Canary (February 2026). It's heading to W3C standardization with a formal announcement expected at Google I/O mid-2026. Our product shares the name -- here's why that's intentional.
+
+**Chrome's WebMCP** is the browser-native standard: a low-level API (`navigator.modelContext`) that lets websites declare structured, callable tools for AI agents.
+
+**webmcp-sdk** is the implementation toolkit: builder pattern, React hooks, Express/Next.js middleware, security layer, and testing utilities that make it easy to build Chrome WebMCP-compliant sites.
+
+We're the [Express](https://expressjs.com/) to their HTTP spec. Every major protocol needs an implementation layer.
+
+```typescript
+// Raw Chrome WebMCP API (verbose)
+navigator.modelContext.tools = [{
+  name: 'search',
+  description: 'Search products',
+  inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+  // ... manual handler wiring ...
+}];
+
+// webmcp-sdk (same result, 10x less code)
+server.tool('search', {
+  description: 'Search products',
+  parameters: z.object({ query: z.string() }),
+  handler: async ({ query }) => searchProducts(query),
+});
+```
+
+As Chrome WebMCP moves from Canary to stable release, sites built with webmcp-sdk will be natively agent-ready without major refactoring.
+
 ## Quick Start
 
 ```bash
