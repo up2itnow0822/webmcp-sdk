@@ -83,5 +83,6 @@
     "typescript": "^5.4.0",
     "vitest": "^3.0.0",
     "@types/react": "^19.0.0"
-  }
+  },
+  "mcpName": "io.github.up2itnow0822/webmcp-sdk"
 }

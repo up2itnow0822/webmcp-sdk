@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.up2itnow0822/webmcp-sdk",
+  "title": "WebMCP — Make Any Website Agent-Ready",
+  "description": "W3C WebMCP toolkit for Chrome 146. Expose any website as a structured MCP server for AI agents.",
+  "repository": {
+    "url": "https://github.com/up2itnow0822/webmcp-sdk",
+    "source": "github"
+  },
+  "version_detail": {
+    "version": "0.4.0"
+  }
+}
