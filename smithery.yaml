@@ -1,0 +1,29 @@
+# Smithery MCP server configuration
+name: webmcp-sdk
+displayName: WebMCP SDK
+description: The TypeScript implementation toolkit for the W3C WebMCP standard (Chrome 146+). Turns any website into an agent-ready MCP endpoint with builder pattern, React hooks, security middleware, and testing utilities.
+homepage: https://github.com/up2itnow0822/webmcp-sdk
+license: MIT
+tags:
+  - mcp
+  - webmcp
+  - chrome-146
+  - ai-agents
+  - web-standard
+  - w3c
+  - typescript
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      debug:
+        type: boolean
+        description: Enable debug logging
+        default: false
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'webmcp-sdk', 'serve'],
+      env: { DEBUG: config.debug ? '1' : '0' }
+    })
