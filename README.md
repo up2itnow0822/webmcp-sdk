@@ -9,6 +9,22 @@ The developer toolkit for the new W3C Web Model Context Protocol — the standar
 
 ---
 
+## Why Now?
+
+The stars aligned in early 2026. WebMCP is no longer a proposal — it's shipping code backed by the three largest players in the web platform space.
+
+**Google** shipped WebMCP in Chrome 146 Canary (February 2026). The flag is live. Developers can build with `navigator.modelContext` today. Chrome ships to 3 billion users. When this graduates from Canary, the entire web becomes agent-addressable overnight.
+
+**Microsoft** co-authored the WebMCP specification at W3C. Edge (Chromium-based) will follow Chrome's implementation. Two of the three major browser engines committed before the spec is even final.
+
+**W3C** is fast-tracking standardization. Formal announcement expected at Google I/O mid-2026. Standards process that typically takes years is being compressed — the industry consensus is that this is the right abstraction.
+
+The window to establish namespace dominance is open right now, before mainstream coverage. Sites that ship WebMCP tooling during this Canary phase will be indexed, documented, and cited as reference implementations when the spec stabilizes.
+
+`webmcp-sdk` is built for this moment.
+
+---
+
 ## Why WebMCP Kit?
 
 [WebMCP](https://webmachinelearning.github.io/webmcp/) shipped in Chrome 146 (Feb 2026) as an early preview. It lets any website expose structured, callable tools to AI agents through `navigator.modelContext`. But the raw API is low-level.
