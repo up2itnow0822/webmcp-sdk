@@ -1,69 +1,118 @@
+![CI](https://github.com/up2itnow0822/webmcp-sdk/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/up2itnow0822/webmcp-sdk/actions/workflows/codeql.yml/badge.svg)
+![npm](https://img.shields.io/npm/v/webmcp-sdk)
+![License](https://img.shields.io/npm/l/webmcp-sdk)
+
 # webmcp-sdk 🌐🤖
 
 **Make any website agent-ready with [WebMCP](https://webmachinelearning.github.io/webmcp/) in minutes.**
 
-The developer toolkit for the new W3C Web Model Context Protocol — the standard that turns websites into structured tools for AI agents. No screen scraping. No Puppeteer scripts. Your frontend JavaScript becomes the agent interface.
+The developer toolkit for the W3C Web Model Context Protocol — the standard that turns websites into structured tools for AI agents. No screen scraping. No Puppeteer scripts. Your frontend JavaScript becomes the agent interface.
 
-[![npm version](https://img.shields.io/npm/v/webmcp-sdk)](https://www.npmjs.com/package/webmcp-sdk)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+Zero dependencies. Full TypeScript. Production CI verified.
 
 ---
 
 ## Why Now?
 
-The stars aligned in early 2026. WebMCP is no longer a proposal — it's shipping code backed by the three largest players in the web platform space.
+Chrome 146 shipped `navigator.modelContext` in February 2026. It's flag-gated today — but this is the Canary that ships to 3 billion users. When it graduates, every website that isn't already WebMCP-ready gets left behind.
 
-**Google** shipped WebMCP in Chrome 146 Canary (February 2026). The flag is live. Developers can build with `navigator.modelContext` today. Chrome ships to 3 billion users. When this graduates from Canary, the entire web becomes agent-addressable overnight.
+Microsoft co-authored the spec. W3C is fast-tracking it. Formal announcement is expected at Google I/O mid-2026. The window to build before mainstream coverage closes is right now.
 
-**Microsoft** co-authored the WebMCP specification at W3C. Edge (Chromium-based) will follow Chrome's implementation. Two of the three major browser engines committed before the spec is even final.
-
-**W3C** is fast-tracking standardization. Formal announcement expected at Google I/O mid-2026. Standards process that typically takes years is being compressed — the industry consensus is that this is the right abstraction.
-
-The window to establish namespace dominance is open right now, before mainstream coverage. Sites that ship WebMCP tooling during this Canary phase will be indexed, documented, and cited as reference implementations when the spec stabilizes.
-
-`webmcp-sdk` is built for this moment.
+`webmcp-sdk` is the Express to Chrome's HTTP — the implementation layer that makes the low-level API actually usable.
 
 ---
 
-## Why WebMCP Kit?
+## What You Get
 
-[WebMCP](https://webmachinelearning.github.io/webmcp/) shipped in Chrome 146 (Feb 2026) as an early preview. It lets any website expose structured, callable tools to AI agents through `navigator.modelContext`. But the raw API is low-level.
-
-**webmcp-sdk** gives you:
-
-- 🏗️ **TypeScript-first** — Full types for the entire WebMCP API
-- ⚡ **Builder pattern** — Fluent API for defining tools
-- 🛡️ **Security middleware** — Rate limiting, input sanitization, blocked patterns, audit logging
+- 🏗️ **TypeScript-first** — Full types for the WebMCP API surface
+- ⚡ **Builder pattern** — Fluent API, no boilerplate
+- 🛡️ **Security middleware** — Rate limiting, input sanitization, audit logging
 - ⚛️ **React hooks** — `useWebMCPTool()` registers on mount, cleans up on unmount
 - 🧪 **Testing utilities** — Mock browser context, test runner, quality scorer
 - ✅ **Input validation** — JSON Schema validation before your handler runs
 - 🔒 **Confirmation guards** — Destructive actions require user approval
-- 📊 **Tool quality scoring** — Know if LLMs will understand your tool definitions
+- 🔍 **Express auto-discovery** — Agents find your tools automatically, zero config
 
-## v0.4.0 — Auto-Discovery Middleware
+---
 
-**New in v0.2.0:** Server-side auto-discovery middleware for Express and FastAPI. Any agent that hits your server now instantly knows where to find your MCP tools — zero config, zero documentation required.
+## Install
 
-```ts
-import { webmcpDiscovery } from 'webmcp-sdk/middleware/express';
-app.use(webmcpDiscovery());        // ← that's it
-// Every response now carries: Link: </mcp>; rel="mcp-manifest"
+```bash
+npm install webmcp-sdk
 ```
 
 ---
 
-## Server-Side Auto-Discovery Middleware
+## Quick Start — Register a Tool
 
-Make your Express or FastAPI server **instantly agent-discoverable** by injecting standard HTTP headers on every response. AI agents can find your MCP manifest without any docs or configuration.
+```typescript
+import { createKit, defineTool } from 'webmcp-sdk';
 
-### Express — Zero Config
+const kit = createKit({ prefix: 'myshop' });
 
-```ts
+kit.register(defineTool(
+  'search',
+  'Search products by keyword. Returns matching products with prices and availability.',
+  {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Search keyword or phrase' },
+      category: { type: 'string', enum: ['electronics', 'clothing', 'home'] },
+      maxResults: { type: 'number', minimum: 1, maximum: 50 },
+    },
+    required: ['query'],
+  },
+  async ({ query, category, maxResults = 10 }) => {
+    const results = await yourSearchFunction(query, { category, limit: maxResults });
+    return { results, total: results.length };
+  }
+));
+```
+
+When an AI agent visits your site in Chrome 146+, it sees `myshop.search` as a callable, typed tool. That's it.
+
+---
+
+## Builder Pattern
+
+```typescript
+import { createKit, tool } from 'webmcp-sdk';
+
+const kit = createKit();
+
+kit.register(
+  tool('add-to-cart')
+    .description('Add a product to the shopping cart by product ID')
+    .input({
+      type: 'object',
+      properties: {
+        productId: { type: 'string', description: 'Product ID' },
+        quantity: { type: 'number', minimum: 1, maximum: 99 },
+      },
+      required: ['productId'],
+    })
+    .annotate({ destructiveHint: false, confirmationHint: false })
+    .handle(async ({ productId, quantity = 1 }) => {
+      return await addToCart(productId, quantity);
+    })
+);
+```
+
+---
+
+## Server-Side Auto-Discovery (Express)
+
+Any agent that hits your server instantly knows where to find your MCP tools — no docs, no config.
+
+### Zero Config
+
+```typescript
 import express from 'express';
 import { webmcpDiscovery } from 'webmcp-sdk/middleware/express';
 
 const app = express();
-app.use(webmcpDiscovery());    // agents now auto-discover your /mcp endpoint
+app.use(webmcpDiscovery());    // agents auto-discover your /mcp endpoint
 ```
 
 Every response gets:
@@ -73,9 +122,9 @@ MCP-Version: 1.0
 MCP-Capabilities: tools
 ```
 
-### Express — Full Auto-Setup (headers + manifest endpoint)
+### Full Auto-Setup (headers + manifest endpoint)
 
-```ts
+```typescript
 import { webmcpAutoSetup } from 'webmcp-sdk/middleware/express';
 
 app.use(webmcpAutoSetup({
@@ -89,24 +138,24 @@ app.use(webmcpAutoSetup({
   ],
 }));
 // → Injects discovery headers on all responses
-// → Registers GET /mcp  (full manifest JSON)
-// → Registers GET /mcp/tools
-// → Registers GET /mcp/resources
+// → GET /mcp  returns full manifest JSON
+// → GET /mcp/tools
+// → GET /mcp/resources
 ```
 
-### Express — Custom Options
+### Custom Options
 
-```ts
+```typescript
 app.use(webmcpDiscovery({
-  manifestPath: '/api/mcp',                         // default: '/mcp'
-  capabilities: ['tools', 'resources', 'prompts'],  // default: ['tools']
+  manifestPath: '/api/mcp',
+  capabilities: ['tools', 'resources', 'prompts'],
   version: '1.0',
   serverName: 'My App',
-  onlyOnSuccess: true,                              // skip 4xx/5xx (default: true)
+  onlyOnSuccess: true,   // skip 4xx/5xx (default: true)
 }));
 ```
 
-### FastAPI — Zero Config
+### FastAPI
 
 ```python
 from fastapi import FastAPI
@@ -116,20 +165,19 @@ app = FastAPI()
 app.add_middleware(WebMCPDiscoveryMiddleware)
 ```
 
-### FastAPI — With Options
+With options:
 
 ```python
 app.add_middleware(
     WebMCPDiscoveryMiddleware,
     manifest_path='/mcp',
     capabilities=['tools', 'resources'],
-    version='1.0',
     server_name='My API',
     only_on_success=True,
 )
 ```
 
-### FastAPI — Full Auto-Setup
+Full auto-setup:
 
 ```python
 from webmcp_sdk.middleware import WebMCPAutoSetupMiddleware
@@ -137,113 +185,17 @@ from webmcp_sdk.middleware import WebMCPAutoSetupMiddleware
 app.add_middleware(
     WebMCPAutoSetupMiddleware,
     server_name='My API',
-    tools=[
-        {'name': 'search', 'description': 'Search products'},
-    ],
+    tools=[{'name': 'search', 'description': 'Search products'}],
 )
-# → GET /mcp serves the full manifest automatically
 ```
-
-### Why this beats Mastra
-
-Mastra's agent discovery requires config files and manual wiring. WebMCP auto-discovery is **3 lines of code** — add the middleware, done. Every agent that hits any endpoint immediately knows your server is MCP-capable.
 
 ---
 
-
-## Relationship to the W3C WebMCP Standard
-
-Google shipped WebMCP (Web Model Context Protocol) in Chrome 146 Canary (February 2026). It's heading to W3C standardization with a formal announcement expected at Google I/O mid-2026. Our product shares the name -- here's why that's intentional.
-
-**Chrome's WebMCP** is the browser-native standard: a low-level API (`navigator.modelContext`) that lets websites declare structured, callable tools for AI agents.
-
-**webmcp-sdk** is the implementation toolkit: builder pattern, React hooks, Express/Next.js middleware, security layer, and testing utilities that make it easy to build Chrome WebMCP-compliant sites.
-
-We're the [Express](https://expressjs.com/) to their HTTP spec. Every major protocol needs an implementation layer.
-
-```typescript
-// Raw Chrome WebMCP API (verbose)
-navigator.modelContext.tools = [{
-  name: 'search',
-  description: 'Search products',
-  inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
-  // ... manual handler wiring ...
-}];
-
-// webmcp-sdk (same result, 10x less code)
-server.tool('search', {
-  description: 'Search products',
-  parameters: z.object({ query: z.string() }),
-  handler: async ({ query }) => searchProducts(query),
-});
-```
-
-As Chrome WebMCP moves from Canary to stable release, sites built with webmcp-sdk will be natively agent-ready without major refactoring.
-
-## Quick Start
-
-```bash
-npm install webmcp-sdk
-```text
-
-### Register a tool in 30 seconds
-
-```typescript
-import { createKit, defineTool } from 'webmcp-kit';
-
-const kit = createKit({ prefix: 'myshop' });
-
-kit.register(defineTool(
-  'search',
-  'Search products by keyword. Returns matching products with prices and availability.',
-  {
-    type: 'object',
-    properties: {
-      query: { type: 'string', description: 'Search keyword or phrase' },
-      category: { type: 'string', enum: ['electronics', 'clothing', 'home'], description: 'Product category filter' },
-      maxResults: { type: 'number', description: 'Maximum results to return', minimum: 1, maximum: 50 },
-    },
-    required: ['query'],
-  },
-  async ({ query, category, maxResults = 10 }) => {
-    const results = await yourSearchFunction(query, { category, limit: maxResults });
-    return { results, total: results.length };
-  }
-));
-```text
-
-That's it. When an AI agent visits your site in Chrome 146+, it sees `myshop.search` as a callable tool with typed parameters.
-
-### Builder Pattern
-
-```typescript
-import { createKit, tool } from 'webmcp-kit';
-
-const kit = createKit();
-
-kit.register(
-  tool('add-to-cart')
-    .description('Add a product to the shopping cart by product ID')
-    .input({
-      type: 'object',
-      properties: {
-        productId: { type: 'string', description: 'Product ID' },
-        quantity: { type: 'number', description: 'Quantity to add', minimum: 1, maximum: 99 },
-      },
-      required: ['productId'],
-    })
-    .annotate({ destructiveHint: false, confirmationHint: false })
-    .handle(async ({ productId, quantity = 1 }) => {
-      return await addToCart(productId, quantity);
-    })
-);
-```text
-
 ## React Integration
 
-```bash
-import { useWebMCPTool, useWebMCPAvailable } from 'webmcp-kit/react';
-```text
+```typescript
+import { useWebMCPTool, useWebMCPAvailable } from 'webmcp-sdk/react';
+```
 
 ```tsx
 function ProductSearch() {
@@ -273,7 +225,7 @@ function App() {
     </div>
   );
 }
-```text
+```
 
 ### Available Hooks
 
@@ -285,10 +237,12 @@ function App() {
 | `useWebMCPLog(maxEntries?)` | Track agent tool invocations for debugging |
 | `useWebMCPKit(config?)` | Get the shared Kit instance for advanced usage |
 
+---
+
 ## Security
 
 ```typescript
-import { withSecurity, withConfirmation } from 'webmcp-kit/security';
+import { withSecurity, withConfirmation } from 'webmcp-sdk/security';
 
 // Rate limit + sanitize + block patterns + audit
 const secureTool = withSecurity(myTool, {
@@ -304,18 +258,18 @@ const safeDeleteTool = withConfirmation(
   deleteTool,
   'This will permanently delete your account and all data.'
 );
-```text
-
-### Security Features
+```
 
 | Feature | What It Does |
 |---------|-------------|
 | **Rate Limiting** | Sliding window rate limiter per tool |
-| **Input Sanitization** | Strip HTML, control chars, truncate strings/arrays, limit depth |
+| **Input Sanitization** | Strip HTML, control chars, truncate strings/arrays |
 | **Blocked Patterns** | Regex-based input rejection (XSS, injection) |
-| **Audit Logging** | Hook for every invocation with sanitization/block status |
+| **Audit Logging** | Hook for every invocation with sanitization status |
 | **Confirmation Guards** | `requestUserInteraction()` before destructive actions |
 | **Concurrency Limiting** | Cap parallel tool executions (default: 10) |
+
+---
 
 ## Testing
 
@@ -326,36 +280,68 @@ import {
   testTool,
   scoreToolQuality,
   formatTestResults,
-} from 'webmcp-kit/testing';
+} from 'webmcp-sdk/testing';
 
 // Validate your tool definition
 const validation = validateToolDefinition(myTool);
-console.log(validation.errors);   // Schema/name issues
-console.log(validation.warnings); // LLM readability tips
+console.log(validation.errors);    // Schema/name issues
+console.log(validation.warnings);  // LLM readability tips
 
 // Score tool quality for LLM consumption
 const { score, maxScore, breakdown } = scoreToolQuality(myTool);
 console.log(`Quality: ${score}/${maxScore}`);
-// breakdown shows name, description, schema, annotations scores + tips
 
 // Run test cases
 const results = await testTool(myTool, [
   { name: 'basic search', input: { query: 'shoes' }, validate: (r) => r.results.length > 0 },
   { name: 'empty query fails', input: {}, expectError: /required/ },
-  { name: 'timeout handling', input: { query: 'slow' }, timeoutMs: 5000 },
 ]);
 console.log(formatTestResults(results));
-// ✅ basic search (3ms)
-// ✅ empty query fails (1ms)
-// ❌ timeout handling (5001ms)
-//    └─ Timeout after 5000ms
-// 2/3 passed (1 failed)
 
 // Mock browser for integration tests
 const { context, invoke } = createMockContext();
 context.registerTool(myTool);
 const result = await invoke('my-tool', { query: 'test' });
-```text
+```
+
+---
+
+## How It Relates to Chrome 146 / W3C WebMCP
+
+Chrome's WebMCP is the browser-native standard — the low-level API (`navigator.modelContext`) that lets websites declare callable tools for AI agents. `webmcp-sdk` is the implementation layer: builder pattern, React hooks, Express middleware, security, and testing utilities that make building Chrome WebMCP-compliant sites practical.
+
+```typescript
+// Raw Chrome WebMCP API
+navigator.modelContext.tools = [{
+  name: 'search',
+  description: 'Search products',
+  inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+}];
+
+// webmcp-sdk — same result, less code
+server.tool('search', {
+  description: 'Search products',
+  parameters: z.object({ query: z.string() }),
+  handler: async ({ query }) => searchProducts(query),
+});
+```
+
+Sites built with `webmcp-sdk` will be natively agent-ready when Chrome WebMCP graduates from Canary to stable — no refactoring required.
+
+---
+
+## Browser Support
+
+| Browser | Status | Version |
+|---------|--------|---------|
+| Chrome | ✅ Early Preview (flag-gated) | 146+ |
+| Edge | 🟡 Expected (shares Chromium) | TBD |
+| Firefox | ⏳ No signal yet | — |
+| Safari | ⏳ No signal yet | — |
+
+**Enable in Chrome 146:** `chrome://flags` → "Experimental Web Platform Features" → Enable → Relaunch
+
+---
 
 ## API Reference
 
@@ -376,39 +362,16 @@ const result = await invoke('my-tool', { query: 'test' });
 
 ```typescript
 createKit({
-  prefix: 'myapp',           // Tool name prefix
-  debug: true,                // Console logging
-  maxConcurrent: 10,          // Max parallel handler executions
-  onError: (err, name) => {}, // Global error handler
-  onBeforeInvoke: (event) => true, // Block/allow invocations
-  onAfterInvoke: (event, result) => {}, // Post-invocation hook
+  prefix: 'myapp',                          // Tool name prefix
+  debug: true,                               // Console logging
+  maxConcurrent: 10,                         // Max parallel handler executions
+  onError: (err, name) => {},               // Global error handler
+  onBeforeInvoke: (event) => true,          // Block/allow invocations
+  onAfterInvoke: (event, result) => {},     // Post-invocation hook
 });
-```text
+```
 
-## Browser Support
-
-| Browser | Status | Version |
-|---------|--------|---------|
-| Chrome | ✅ Early Preview (flag-gated) | 146+ |
-| Edge | 🟡 Expected (shares Chromium) | TBD |
-| Firefox | ⏳ No signal yet | — |
-| Safari | ⏳ No signal yet | — |
-
-**Enable in Chrome 146:** `chrome://flags` → "Experimental Web Platform Features" → Enable → Relaunch
-
-## How It Works
-
-```text
-Your Website                    AI Agent (Claude, GPT, Gemini...)
-┌─────────────┐                ┌──────────────┐
-│ webmcp-kit  │ ──registers──▶ │   Browser    │ ◀──discovers── │ Agent │
-│             │                │  modelContext │                │       │
-│ kit.register│ ◀──invokes─── │              │ ──calls──────▶ │       │
-│  (handler)  │ ──returns───▶ │              │ ──returns────▶ │       │
-└─────────────┘                └──────────────┘                └───────┘
-```text
-
-No server needed. Your frontend JavaScript IS the tool server.
+---
 
 ## Roadmap
 
@@ -419,12 +382,14 @@ No server needed. Your frontend JavaScript IS the tool server.
 - [x] React hooks
 - [x] Testing utilities + mock context
 - [x] Tool quality scorer
+- [x] Express auto-discovery middleware
 - [ ] Vue/Svelte adapters
 - [ ] CLI scanner (auto-generate tools from existing forms/APIs)
-- [ ] Analytics dashboard
 - [ ] `.well-known/webmcp` manifest generator
 - [ ] Next.js / Remix integration
-- [ ] Declarative HTML `<form>` tool registration
+- [ ] Declarative HTML annotation parsing
+
+---
 
 ## License
 
