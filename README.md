@@ -36,6 +36,17 @@ Microsoft co-authored the spec. W3C is fast-tracking it. Formal announcement is 
 
 ---
 
+
+## Security Notice
+
+This SDK exposes tools to AI agents via the W3C WebMCP API. Review the [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) before deploying to production. Key risks to evaluate:
+
+- **Tool injection:** Validate and sanitize all tool inputs before processing
+- **Excessive data exposure:** Return only the data an agent needs, not full database records
+- **Privilege escalation:** Scope each tool to the minimum permissions required
+
+See the [Security Middleware](#security-middleware) section below for built-in protections.
+
 ## Install
 
 ```bash
