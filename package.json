@@ -30,6 +30,11 @@
       "types": "./dist/middleware/express.d.ts",
       "import": "./dist/middleware/express.mjs",
       "require": "./dist/middleware/express.js"
+    },
+    "./x402": {
+      "types": "./dist/x402.d.ts",
+      "import": "./dist/x402.mjs",
+      "require": "./dist/x402.js"
     }
   },
   "files": [

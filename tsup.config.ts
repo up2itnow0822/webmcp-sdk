@@ -13,6 +13,7 @@ export default defineConfig([
       security: 'src/security.ts',
       testing: 'src/testing.ts',
       'middleware/express': 'src/middleware/express.ts',
+      x402: 'src/x402.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,
