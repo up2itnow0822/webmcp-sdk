@@ -46,7 +46,7 @@
     "build": "tsup",
     "test": "vitest run --root .",
     "test:watch": "vitest --root .",
-    "lint": "tsc --noEmit",
+    "lint": "eslint src/ tests/",
     "prepublishOnly": "npm run build && npm run typecheck",
     "typecheck": "tsc --noEmit"
   },
@@ -84,10 +84,13 @@
     }
   },
   "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.18",
-    "@types/react": "^19.0.0"
+    "vitest": "^4.0.18"
   },
   "mcpName": "io.github.up2itnow0822/webmcp-sdk"
 }
