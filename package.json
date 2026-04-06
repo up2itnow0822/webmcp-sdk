@@ -89,7 +89,7 @@
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0",
+    "typescript": "^6.0.2",
     "vitest": "^4.0.18"
   },
   "mcpName": "io.github.up2itnow0822/webmcp-sdk"
