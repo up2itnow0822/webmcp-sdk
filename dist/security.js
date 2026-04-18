@@ -51,8 +51,47 @@ var RateLimiter = class {
     this.invocations = [];
   }
 };
-var HTML_TAG_REGEX = /<[^>]*>/g;
-var CONTROL_CHAR_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+function isDisallowedControlChar(code) {
+  return code >= 0 && code <= 8 || code === 11 || code === 12 || code >= 14 && code <= 31 || code === 127;
+}
+function stripControlChars(value) {
+  let result = "";
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (!isDisallowedControlChar(code)) {
+      result += value[i];
+    }
+  }
+  return result;
+}
+function looksLikeHtmlTag(value, start, end) {
+  if (end <= start + 1) {
+    return false;
+  }
+  const first = value[start + 1];
+  if (!first) {
+    return false;
+  }
+  const code = first.charCodeAt(0);
+  const isAsciiLetter = code >= 65 && code <= 90 || code >= 97 && code <= 122;
+  return isAsciiLetter || first === "/" || first === "!" || first === "?";
+}
+function stripHtmlTags(value) {
+  let result = "";
+  let index = 0;
+  while (index < value.length) {
+    if (value[index] === "<") {
+      const end = value.indexOf(">", index + 1);
+      if (end !== -1 && looksLikeHtmlTag(value, index, end)) {
+        index = end + 1;
+        continue;
+      }
+    }
+    result += value[index];
+    index += 1;
+  }
+  return result;
+}
 function sanitizeValue(value, options, depth) {
   if (depth > options.maxDepth) {
     return void 0;
@@ -60,10 +99,10 @@ function sanitizeValue(value, options, depth) {
   if (typeof value === "string") {
     let sanitized = value;
     if (options.stripHtml) {
-      sanitized = sanitized.replace(HTML_TAG_REGEX, "");
+      sanitized = stripHtmlTags(sanitized);
     }
     if (options.stripControlChars) {
-      sanitized = sanitized.replace(CONTROL_CHAR_REGEX, "");
+      sanitized = stripControlChars(sanitized);
     }
     if (sanitized.length > options.maxStringLength) {
       sanitized = sanitized.slice(0, options.maxStringLength);

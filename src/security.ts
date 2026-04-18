@@ -74,8 +74,61 @@ export interface SanitizeOptions {
   stripControlChars?: boolean;
 }
 
-const HTML_TAG_REGEX = /<[^>]*>/g;
-const CONTROL_CHAR_REGEX = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+function isDisallowedControlChar(code: number): boolean {
+  return (
+    (code >= 0x00 && code <= 0x08)
+    || code === 0x0B
+    || code === 0x0C
+    || (code >= 0x0E && code <= 0x1F)
+    || code === 0x7F
+  );
+}
+
+function stripControlChars(value: string): string {
+  let result = '';
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (!isDisallowedControlChar(code)) {
+      result += value[i];
+    }
+  }
+  return result;
+}
+
+function looksLikeHtmlTag(value: string, start: number, end: number): boolean {
+  if (end <= start + 1) {
+    return false;
+  }
+
+  const first = value[start + 1];
+  if (!first) {
+    return false;
+  }
+
+  const code = first.charCodeAt(0);
+  const isAsciiLetter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  return isAsciiLetter || first === '/' || first === '!' || first === '?';
+}
+
+function stripHtmlTags(value: string): string {
+  let result = '';
+  let index = 0;
+
+  while (index < value.length) {
+    if (value[index] === '<') {
+      const end = value.indexOf('>', index + 1);
+      if (end !== -1 && looksLikeHtmlTag(value, index, end)) {
+        index = end + 1;
+        continue;
+      }
+    }
+
+    result += value[index];
+    index += 1;
+  }
+
+  return result;
+}
 
 function sanitizeValue(value: unknown, options: Required<SanitizeOptions>, depth: number): unknown {
   if (depth > options.maxDepth) {
@@ -85,10 +138,10 @@ function sanitizeValue(value: unknown, options: Required<SanitizeOptions>, depth
   if (typeof value === 'string') {
     let sanitized = value;
     if (options.stripHtml) {
-      sanitized = sanitized.replace(HTML_TAG_REGEX, '');
+      sanitized = stripHtmlTags(sanitized);
     }
     if (options.stripControlChars) {
-      sanitized = sanitized.replace(CONTROL_CHAR_REGEX, '');
+      sanitized = stripControlChars(sanitized);
     }
     if (sanitized.length > options.maxStringLength) {
       sanitized = sanitized.slice(0, options.maxStringLength);
