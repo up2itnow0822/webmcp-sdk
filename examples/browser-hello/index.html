@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>webmcp-sdk browser hello example</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem auto;
+        max-width: 720px;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      code, pre {
+        background: #f4f4f5;
+        border-radius: 6px;
+      }
+      code { padding: 0.15rem 0.35rem; }
+      pre {
+        padding: 1rem;
+        overflow-x: auto;
+      }
+      .status {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        background: #eef6ff;
+        margin: 1rem 0;
+      }
+      label, input, button { font: inherit; }
+      input {
+        padding: 0.5rem;
+        width: 16rem;
+        margin-right: 0.5rem;
+      }
+      button {
+        padding: 0.55rem 0.9rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>webmcp-sdk browser hello example</h1>
+    <p>
+      This is the canonical browser-side proof path for <code>webmcp-sdk</code>.
+      It registers one tool, shows whether <code>navigator.modelContext</code> is available,
+      and lets you invoke the tool directly for a visible success.
+    </p>
+
+    <div id="status" class="status">Loading...</div>
+
+    <p>
+      <label for="name">Name</label><br />
+      <input id="name" value="Bill" />
+      <button id="invoke">Run demo.hello</button>
+    </p>
+
+    <h2>Result</h2>
+    <pre id="result">Waiting for first run...</pre>
+
+    <h2>Notes</h2>
+    <ul>
+      <li>Direct invocation works anywhere the built package can run.</li>
+      <li>Automatic browser registration happens when <code>navigator.modelContext</code> is present.</li>
+      <li>Use Chrome 146+ or a WebMCP polyfill-enabled environment to test native browser registration.</li>
+    </ul>
+
+    <script type="module" src="./main.mjs"></script>
+  </body>
+</html>
