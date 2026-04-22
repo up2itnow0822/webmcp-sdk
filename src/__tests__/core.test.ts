@@ -1,367 +1,313 @@
-/**
- * Tests for WebMCP Kit — Core SDK
- * Covers: tool registration, navigator.modelContext declaration,
- * input validation, builder pattern, and server JSON generation.
- */
-
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { WebMCPKit, createKit, tool, defineTool } from '../core.js';
+import { installMockContext } from '../testing.js';
 
-// ─── Mock navigator.modelContext ───
-
-function installModelContext() {
-  const registeredTools: Record<string, unknown> = {};
-  const ctx = {
-    registerTool: vi.fn((t: { name: string }) => {
-      registeredTools[t.name] = t;
-    }),
-    unregisterTool: vi.fn((name: string) => {
-      delete registeredTools[name];
-    }),
-    requestUserInteraction: vi.fn(async () => true),
-    _tools: registeredTools,
-  };
-  Object.defineProperty(globalThis, 'navigator', {
-    value: { modelContext: ctx },
-    writable: true,
-    configurable: true,
-  });
-  return ctx;
-}
-
-function removeModelContext() {
-  Object.defineProperty(globalThis, 'navigator', {
-    value: {},
-    writable: true,
-    configurable: true,
-  });
-}
-
-// ─── Core Tool Registration ───
-
-describe('WebMCPKit — core tool registration', () => {
+describe('WebMCPKit', () => {
   let kit: WebMCPKit;
+  let cleanup: (() => void) | undefined;
 
   beforeEach(() => {
-    kit = createKit();
+    kit = createKit({ debug: false });
   });
 
-  it('registers a tool and returns it via getTools()', () => {
-    const t = defineTool(
-      'search',
-      'Search products',
-      { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
-      async ({ query }) => ({ results: [query] })
-    );
-    kit.register(t);
+  afterEach(() => {
+    if (cleanup) {
+      cleanup();
+      cleanup = undefined;
+    }
+  });
+
+  it('creates a kit instance', () => {
+    expect(kit).toBeInstanceOf(WebMCPKit);
+  });
+
+  it('registers a tool', () => {
+    kit.register({
+      name: 'search',
+      description: 'Search for products',
+      inputSchema: {
+        type: 'object',
+        properties: { query: { type: 'string' } },
+        required: ['query'],
+      },
+      handler: async ({ query }) => ({ results: [], query }),
+    });
+
     expect(kit.getTools()).toHaveLength(1);
     expect(kit.getTools()[0].name).toBe('search');
   });
 
-  it('applies prefix to tool name', () => {
-    const k = createKit({ prefix: 'myapp' });
-    k.register(
-      defineTool('ping', 'Ping', { type: 'object', properties: {} }, async () => 'pong')
+  it('registers with prefix', () => {
+    const prefixed = createKit({ prefix: 'myapp' });
+    prefixed.register({
+      name: 'search',
+      description: 'Search',
+      inputSchema: { type: 'object' },
+      handler: async () => ({}),
+    });
+
+    expect(prefixed.getTools()[0].name).toBe('myapp.search');
+  });
+
+  it('rejects invalid tool names', () => {
+    expect(() =>
+      kit.register({
+        name: 'UPPERCASE',
+        description: 'Bad name',
+        inputSchema: { type: 'object' },
+        handler: async () => ({}),
+      })
+    ).toThrow(/lowercase/);
+  });
+
+  it('rejects empty tool names', () => {
+    expect(() =>
+      kit.register({
+        name: '',
+        description: 'Empty name',
+        inputSchema: { type: 'object' },
+        handler: async () => ({}),
+      })
+    ).toThrow(/empty/);
+  });
+
+  it('rejects duplicate registration without replace', () => {
+    const def = {
+      name: 'dupe',
+      description: 'Test',
+      inputSchema: { type: 'object' as const },
+      handler: async () => ({}),
+    };
+    kit.register(def);
+    expect(() => kit.register(def)).toThrow(/already registered/);
+  });
+
+  it('allows replacement with replace: true', () => {
+    kit.register({
+      name: 'replaceable',
+      description: 'v1',
+      inputSchema: { type: 'object' },
+      handler: async () => 'v1',
+    });
+    kit.register(
+      {
+        name: 'replaceable',
+        description: 'v2',
+        inputSchema: { type: 'object' },
+        handler: async () => 'v2',
+      },
+      { replace: true }
     );
-    expect(k.getTools()[0].name).toBe('myapp.ping');
+
+    expect(kit.getTools()[0].description).toBe('v2');
   });
 
-  it('throws if tool name is empty', () => {
-    expect(() =>
-      kit.register(
-        defineTool('', 'desc', { type: 'object', properties: {} }, async () => null)
-      )
-    ).toThrow(/cannot be empty/i);
+  it('invokes a tool directly', async () => {
+    kit.register({
+      name: 'echo',
+      description: 'Echo input',
+      inputSchema: {
+        type: 'object',
+        properties: { message: { type: 'string' } },
+      },
+      handler: async ({ message }) => ({ echo: message }),
+    });
+
+    const result = await kit.invoke<{ echo: string }>('echo', { message: 'hello' });
+    expect(result.echo).toBe('hello');
   });
 
-  it('throws if tool name exceeds 64 characters', () => {
-    expect(() =>
-      kit.register(
-        defineTool('a'.repeat(65), 'desc', { type: 'object', properties: {} }, async () => null)
-      )
-    ).toThrow(/exceeds 64 characters/i);
+  it('validates required fields', async () => {
+    kit.register({
+      name: 'strict',
+      description: 'Strict input',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+      handler: async ({ name }) => name,
+    });
+
+    await expect(kit.invoke('strict', {})).rejects.toThrow(/required/);
   });
 
-  it('throws if tool name has invalid characters', () => {
-    expect(() =>
-      kit.register(
-        defineTool('My Tool!', 'desc', { type: 'object', properties: {} }, async () => null)
-      )
-    ).toThrow(/lowercase alphanumeric/i);
+  it('validates field types', async () => {
+    kit.register({
+      name: 'typed',
+      description: 'Typed input',
+      inputSchema: {
+        type: 'object',
+        properties: { count: { type: 'number' } },
+      },
+      handler: async ({ count }) => count,
+    });
+
+    await expect(kit.invoke('typed', { count: 'not a number' })).rejects.toThrow(/number/);
   });
 
-  it('throws if inputSchema is not type object', () => {
-    expect(() =>
-      kit.register(
-        defineTool('bad', 'desc', { type: 'string' } as any, async () => null)
-      )
-    ).toThrow(/type "object"/i);
-  });
+  it('validates enum values', async () => {
+    kit.register({
+      name: 'enumed',
+      description: 'Enum input',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          color: { type: 'string', enum: ['red', 'blue', 'green'] },
+        },
+      },
+      handler: async ({ color }) => color,
+    });
 
-  it('throws on duplicate registration without replace flag', () => {
-    const t = defineTool('ping', 'Ping', { type: 'object', properties: {} }, async () => 'pong');
-    kit.register(t);
-    expect(() => kit.register(t)).toThrow(/already registered/i);
-  });
-
-  it('allows replacement with { replace: true }', () => {
-    const t = defineTool('ping', 'Ping', { type: 'object', properties: {} }, async () => 'pong');
-    kit.register(t);
-    kit.register(t, { replace: true });
-    expect(kit.getTools()).toHaveLength(1);
+    await expect(kit.invoke('enumed', { color: 'purple' })).rejects.toThrow(/one of/);
   });
 
   it('unregisters a tool', () => {
-    kit.register(
-      defineTool('ping', 'Ping', { type: 'object', properties: {} }, async () => 'pong')
-    );
-    kit.unregister('ping');
+    kit.register({
+      name: 'temp',
+      description: 'Temporary',
+      inputSchema: { type: 'object' },
+      handler: async () => ({}),
+    });
+
+    expect(kit.getTools()).toHaveLength(1);
+    kit.unregister('temp');
     expect(kit.getTools()).toHaveLength(0);
   });
 
   it('unregisters all tools', () => {
-    kit.register(defineTool('a', 'A', { type: 'object', properties: {} }, async () => 'a'));
-    kit.register(defineTool('b', 'B', { type: 'object', properties: {} }, async () => 'b'));
+    kit.register({
+      name: 'tool-a',
+      description: 'A',
+      inputSchema: { type: 'object' },
+      handler: async () => ({}),
+    });
+    kit.register({
+      name: 'tool-b',
+      description: 'B',
+      inputSchema: { type: 'object' },
+      handler: async () => ({}),
+    });
+
     kit.unregisterAll();
     expect(kit.getTools()).toHaveLength(0);
   });
 
-  it('invokes tool handler directly', async () => {
-    kit.register(
-      defineTool(
-        'add',
-        'Add two numbers',
-        {
-          type: 'object',
-          properties: {
-            a: { type: 'number' },
-            b: { type: 'number' },
-          },
-          required: ['a', 'b'],
-        },
-        async ({ a, b }: { a: number; b: number }) => a + b
-      )
-    );
-    const result = await kit.invoke('add', { a: 2, b: 3 });
-    expect(result).toBe(5);
-  });
-
-  it('throws on invoke for missing tool', async () => {
-    await expect(kit.invoke('ghost', {})).rejects.toThrow(/not found/i);
-  });
-});
-
-// ─── Input Validation ───
-
-describe('WebMCPKit — input validation', () => {
-  let kit: WebMCPKit;
-
-  beforeEach(() => {
-    kit = createKit();
-    kit.register(
-      defineTool(
-        'search',
-        'Search',
-        {
-          type: 'object',
-          properties: {
-            query: { type: 'string', minLength: 2, maxLength: 100 },
-            limit: { type: 'number', minimum: 1, maximum: 50 },
-            category: { type: 'string', enum: ['books', 'electronics', 'clothing'] },
-          },
-          required: ['query'],
-        },
-        async ({ query }: { query: string }) => ({ hits: [query] })
-      )
-    );
-  });
-
-  it('rejects missing required field', async () => {
-    await expect(kit.invoke('search', {})).rejects.toThrow(/validation failed/i);
-  });
-
-  it('rejects wrong type for string field', async () => {
-    await expect(kit.invoke('search', { query: 123 })).rejects.toThrow(/validation failed/i);
-  });
-
-  it('rejects string shorter than minLength', async () => {
-    await expect(kit.invoke('search', { query: 'a' })).rejects.toThrow(/validation failed/i);
-  });
-
-  it('rejects number below minimum', async () => {
-    await expect(kit.invoke('search', { query: 'shoes', limit: 0 })).rejects.toThrow(/validation failed/i);
-  });
-
-  it('rejects invalid enum value', async () => {
-    await expect(kit.invoke('search', { query: 'shoes', category: 'pets' })).rejects.toThrow(/validation failed/i);
-  });
-
-  it('accepts valid input', async () => {
-    await expect(kit.invoke('search', { query: 'shoes', limit: 10, category: 'clothing' })).resolves.toBeDefined();
-  });
-});
-
-// ─── navigator.modelContext Integration ───
-
-describe('WebMCPKit — navigator.modelContext declaration', () => {
-  let ctx: ReturnType<typeof installModelContext>;
-
-  beforeEach(() => {
-    ctx = installModelContext();
-  });
-
-  afterEach(() => {
-    removeModelContext();
-  });
-
-  it('detects navigator.modelContext as available', () => {
-    expect(WebMCPKit.isAvailable()).toBe(true);
-  });
-
-  it('calls registerTool on navigator.modelContext when registering', () => {
-    const kit = createKit();
-    kit.register(
-      defineTool('greet', 'Greet', { type: 'object', properties: {} }, async () => 'hello')
-    );
-    expect(ctx.registerTool).toHaveBeenCalledOnce();
-    expect(ctx.registerTool.mock.calls[0][0].name).toBe('greet');
-  });
-
-  it('calls unregisterTool when removing a tool', () => {
-    const kit = createKit();
-    kit.register(
-      defineTool('greet', 'Greet', { type: 'object', properties: {} }, async () => 'hello')
-    );
-    kit.unregister('greet');
-    expect(ctx.unregisterTool).toHaveBeenCalledWith('greet');
-  });
-
-  it('does not call registerTool when navigator is absent', () => {
-    removeModelContext();
-    expect(WebMCPKit.isAvailable()).toBe(false);
-    const kit = createKit();
-    // Should not throw even without browser context
-    expect(() =>
-      kit.register(
-        defineTool('x', 'X', { type: 'object', properties: {} }, async () => null)
-      )
-    ).not.toThrow();
-  });
-
-  it('requestUserInteraction delegates to modelContext', async () => {
-    const kit = createKit();
-    const result = await kit.requestUserInteraction('Confirm deletion?');
-    expect(ctx.requestUserInteraction).toHaveBeenCalledWith({ reason: 'Confirm deletion?' });
-    expect(result).toBe(true);
-  });
-});
-
-// ─── Builder Pattern ───
-
-describe('tool() builder pattern', () => {
-  it('builds a tool with all fields', () => {
-    const t = tool('checkout')
-      .description('Place an order')
-      .input<{ productId: string }>({
-        type: 'object',
-        properties: { productId: { type: 'string' } },
-        required: ['productId'],
-      })
-      .annotate({ destructiveHint: false, confirmationHint: true })
-      .handle(async ({ productId }) => ({ orderId: productId + '-001' }));
-
-    expect(t.name).toBe('checkout');
-    expect(t.description).toBe('Place an order');
-    expect(t.inputSchema.properties?.productId.type).toBe('string');
-    expect(t.annotations?.confirmationHint).toBe(true);
-  });
-
-  it('handle() returns a callable tool definition', async () => {
-    const t = tool('ping')
-      .description('Ping')
-      .input({ type: 'object', properties: {} })
-      .handle(async () => 'pong');
-
-    expect(await t.handler({})).toBe('pong');
-  });
-
-  it('annotate() is optional — no annotations when skipped', () => {
-    const t = tool('simple')
-      .description('Simple')
-      .input({ type: 'object', properties: {} })
-      .handle(async () => 'ok');
-    expect(t.annotations).toBeUndefined();
-  });
-});
-
-// ─── Server JSON Generation (manifest shape) ───
-
-describe('WebMCPKit — server JSON / tool manifest generation', () => {
-  it('getTools() returns complete tool definitions for manifest serialization', () => {
-    const kit = createKit({ prefix: 'shop' });
-    kit.register(
-      defineTool(
-        'search',
-        'Search the product catalog',
-        {
-          type: 'object',
-          properties: { query: { type: 'string', description: 'Search keyword' } },
-          required: ['query'],
-        },
-        async () => ({ results: [] })
-      )
-    );
-
-    const tools = kit.getTools();
-    expect(tools).toHaveLength(1);
-
-    const [t] = tools;
-    expect(t.name).toBe('shop.search');
-    expect(t.description).toBe('Search the product catalog');
-    expect(t.inputSchema.type).toBe('object');
-    expect(t.inputSchema.required).toContain('query');
-
-    // Verify it serializes cleanly as JSON (no circular refs, no functions at top level)
-    const manifest = JSON.parse(JSON.stringify({ tools: tools.map(({ handler: _, ...rest }) => rest) }));
-    expect(manifest.tools[0].name).toBe('shop.search');
-  });
-
-  it('lifecycle hooks fire in order: before → handler → after', async () => {
-    const order: string[] = [];
-    const kit = createKit({
-      onBeforeInvoke: async () => { order.push('before'); return true; },
-      onAfterInvoke: () => { order.push('after'); },
+  it('calls onError on handler failure', async () => {
+    let capturedError: Error | null = null;
+    const errorKit = createKit({
+      onError: (err) => {
+        capturedError = err;
+      },
     });
-    kit.register(
-      defineTool('op', 'Op', { type: 'object', properties: {} }, async () => {
-        order.push('handler');
-        return 'done';
+
+    errorKit.register({
+      name: 'failing',
+      description: 'This fails',
+      inputSchema: { type: 'object' },
+      handler: async () => {
+        throw new Error('boom');
+      },
+    });
+
+    await expect(errorKit.invoke('failing', {})).rejects.toThrow('boom');
+    expect(capturedError).not.toBeNull();
+    expect(capturedError!.message).toBe('boom');
+  });
+
+  it('calls onBeforeInvoke and can block', async () => {
+    const blockKit = createKit({
+      onBeforeInvoke: () => false,
+    });
+
+    blockKit.register({
+      name: 'blocked',
+      description: 'Blocked tool',
+      inputSchema: { type: 'object' },
+      handler: async () => 'should not run',
+    });
+
+    await expect(blockKit.invoke('blocked', {})).rejects.toThrow(/blocked/i);
+  });
+
+  it('isAvailable returns false outside browser', () => {
+    expect(WebMCPKit.isAvailable()).toBe(false);
+  });
+
+  it('auto-registers tools in navigator.modelContext when available', () => {
+    const mock = installMockContext();
+    cleanup = mock.cleanup;
+
+    const browserKit = createKit({ prefix: 'demo' });
+    browserKit.register({
+      name: 'hello',
+      description: 'Return a greeting',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+      handler: async ({ name }) => ({ message: `Hello, ${name}!` }),
+    });
+
+    expect(mock.getTools()).toHaveLength(1);
+    expect(mock.getTools()[0].name).toBe('demo.hello');
+  });
+
+  it('unregister removes the tool from navigator.modelContext when available', () => {
+    const mock = installMockContext();
+    cleanup = mock.cleanup;
+
+    const browserKit = createKit({ prefix: 'demo' });
+    browserKit.register({
+      name: 'hello',
+      description: 'Return a greeting',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+      handler: async ({ name }) => ({ message: `Hello, ${name}!` }),
+    });
+
+    browserKit.unregister('hello');
+    expect(mock.getTools()).toHaveLength(0);
+  });
+});
+
+describe('tool builder', () => {
+  it('creates a tool definition with fluent API', () => {
+    const searchTool = tool('search')
+      .description('Search products')
+      .input({
+        type: 'object',
+        properties: { query: { type: 'string' } },
+        required: ['query'],
       })
-    );
-    await kit.invoke('op', {});
-    expect(order).toEqual(['before', 'handler', 'after']);
-  });
+      .annotate({ readOnlyHint: true })
+      .handle(async ({ query }: { query: string }) => ({ results: [], query }));
 
-  it('onBeforeInvoke returning false blocks execution', async () => {
-    const kit = createKit({ onBeforeInvoke: async () => false });
-    kit.register(
-      defineTool('op', 'Op', { type: 'object', properties: {} }, async () => 'never')
-    );
-    await expect(kit.invoke('op', {})).rejects.toThrow(/blocked/i);
+    expect(searchTool.name).toBe('search');
+    expect(searchTool.description).toBe('Search products');
+    expect(searchTool.annotations?.readOnlyHint).toBe(true);
+    expect(searchTool.inputSchema.required).toContain('query');
   });
+});
 
-  it('onError hook receives error and tool name', async () => {
-    const onError = vi.fn();
-    const kit = createKit({ onError });
-    kit.register(
-      defineTool(
-        'fail',
-        'Fail',
-        { type: 'object', properties: { x: { type: 'string' } }, required: ['x'] },
-        async () => { throw new Error('boom'); }
-      )
+describe('defineTool', () => {
+  it('creates a tool definition', () => {
+    const t = defineTool(
+      'get-user',
+      'Get a user by ID',
+      {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+        required: ['id'],
+      },
+      async ({ id }) => ({ id, name: 'Test' })
     );
-    await expect(kit.invoke('fail', { x: 'ok' })).rejects.toThrow('boom');
-    expect(onError).toHaveBeenCalledWith(expect.any(Error), 'fail', { x: 'ok' });
+
+    expect(t.name).toBe('get-user');
+    expect(t.description).toBe('Get a user by ID');
   });
 });

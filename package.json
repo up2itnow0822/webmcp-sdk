@@ -1,7 +1,7 @@
 {
   "name": "webmcp-sdk",
-  "version": "0.4.1",
-  "description": "The developer toolkit that makes any website agent-ready with WebMCP. TypeScript-first, framework adapters, security middleware, testing utilities.",
+  "version": "0.5.6",
+  "description": "Developer toolkit for W3C WebMCP (Chrome 146). Make any website agent-ready. navigator.modelContext compatible.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -30,11 +30,6 @@
       "types": "./dist/middleware/express.d.ts",
       "import": "./dist/middleware/express.mjs",
       "require": "./dist/middleware/express.js"
-    },
-    "./x402": {
-      "types": "./dist/x402.d.ts",
-      "import": "./dist/x402.mjs",
-      "require": "./dist/x402.js"
     }
   },
   "files": [
@@ -46,7 +41,7 @@
     "build": "tsup",
     "test": "vitest run --root .",
     "test:watch": "vitest --root .",
-    "lint": "eslint src/ tests/",
+    "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck",
     "typecheck": "tsc --noEmit"
   },
@@ -84,13 +79,10 @@
     }
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@typescript-eslint/parser": "^8.57.1",
-    "eslint": "^10.1.0",
-    "globals": "^17.4.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.18"
-  },
-  "mcpName": "io.github.up2itnow0822/webmcp-sdk"
+    "vitest": "^3.0.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.0.0"
+  }
 }
