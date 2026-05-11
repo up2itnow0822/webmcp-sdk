@@ -39,7 +39,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run --root .",
+    "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --root .",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck",
@@ -79,10 +79,10 @@
     }
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^3.0.0",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.0.0"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }
