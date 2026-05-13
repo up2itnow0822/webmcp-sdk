@@ -30,6 +30,11 @@
       "types": "./dist/middleware/express.d.ts",
       "import": "./dist/middleware/express.mjs",
       "require": "./dist/middleware/express.js"
+    },
+    "./x402": {
+      "types": "./dist/x402.d.ts",
+      "import": "./dist/x402.mjs",
+      "require": "./dist/x402.js"
     }
   },
   "files": [
@@ -43,7 +48,8 @@
     "test:watch": "vitest --root .",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke:package": "node scripts/smoke-package-subpaths.mjs"
   },
   "keywords": [
     "webmcp",
