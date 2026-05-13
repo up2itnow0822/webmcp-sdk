@@ -22,12 +22,12 @@ const runNpm = (args, options = {}) => {
 };
 
 try {
-  const packJson = runNpm(['pack', '--json']);
+  const packJson = runNpm(['pack', '--json', '--dry-run=false']);
   const [{ filename }] = JSON.parse(packJson);
   tarball = resolve(repoRoot, filename);
 
-  runNpm(['init', '-y'], { cwd: smokeRoot });
-  runNpm(['install', '--no-audit', '--ignore-scripts', tarball, 'react@latest'], { cwd: smokeRoot });
+  runNpm(['init', '-y', '--dry-run=false'], { cwd: smokeRoot });
+  runNpm(['install', '--dry-run=false', '--no-audit', '--ignore-scripts', tarball, 'react@latest'], { cwd: smokeRoot });
 
   const packageJsonPath = join(smokeRoot, 'node_modules', 'webmcp-sdk', 'package.json');
   const pkg = JSON.parse(await readFile(packageJsonPath, 'utf8'));

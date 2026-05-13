@@ -1,6 +1,6 @@
 {
   "name": "webmcp-sdk",
-  "version": "0.5.6",
+  "version": "0.5.8",
   "description": "Developer toolkit for W3C WebMCP (Chrome 146). Make any website agent-ready. navigator.modelContext compatible.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -47,7 +47,7 @@
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --root .",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build && npm run typecheck",
+    "prepublishOnly": "npm run build && npm run typecheck && npm run smoke:package",
     "typecheck": "tsc --noEmit",
     "smoke:package": "node scripts/smoke-package-subpaths.mjs"
   },
@@ -73,7 +73,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/up2itnow/webmcp-sdk"
+    "url": "git+https://github.com/up2itnow/webmcp-sdk.git"
   },
   "homepage": "https://github.com/up2itnow/webmcp-sdk#readme",
   "peerDependencies": {
