@@ -71,6 +71,9 @@
   ],
   "author": "up2itnow",
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/up2itnow/webmcp-sdk.git"
