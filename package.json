@@ -1,7 +1,7 @@
 {
   "name": "webmcp-sdk",
-  "version": "0.5.8",
-  "description": "Developer toolkit for W3C WebMCP (Chrome 146). Make any website agent-ready. navigator.modelContext compatible.",
+  "version": "0.5.9",
+  "description": "TypeScript toolkit for WebMCP: register site tools for AI agents, with React hooks, security helpers, audit logging, and testing utilities.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -66,16 +66,18 @@
     "w3c",
     "navigator-modelcontext",
     "agentic-web",
-    "chrome-146",
     "tool-use"
   ],
   "author": "up2itnow",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/up2itnow/webmcp-sdk.git"
+    "url": "git+https://github.com/up2itnow0822/webmcp-sdk.git"
   },
-  "homepage": "https://github.com/up2itnow/webmcp-sdk#readme",
+  "homepage": "https://github.com/up2itnow0822/webmcp-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/up2itnow0822/webmcp-sdk/issues"
+  },
   "peerDependencies": {
     "react": ">=18.0.0"
   },
