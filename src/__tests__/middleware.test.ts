@@ -5,9 +5,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   webmcpDiscovery,
-  webmcpAutoSetup,
+  webmcpAutoSetup as actualAutoSetup,
   type WebMCPDiscoveryOptions,
 } from '../middleware/express.js';
+
+const webmcpAutoSetup = (options: Parameters<typeof actualAutoSetup>[0] = {}) => actualAutoSetup({publicManifest:true,...options});
 
 // ─── Minimal mock helpers ───
 

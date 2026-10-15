@@ -36,6 +36,8 @@ export interface WebMCPAutoSetupOptions extends WebMCPDiscoveryOptions {
   tools?: MCPToolDefinition[];
   /** Resource definitions to serve at the manifest endpoint */
   resources?: MCPResourceDefinition[];
+  publicManifest?: boolean;
+  authorize?: (request: IncomingRequest) => boolean | Promise<boolean>;
 }
 
 export interface MCPToolDefinition {
@@ -53,7 +55,7 @@ export interface MCPResourceDefinition {
 }
 
 // Minimal Express-compatible types (no @types/express dependency needed)
-interface IncomingRequest {
+export interface IncomingRequest {
   method?: string;
   url?: string;
   headers?: Record<string, string | string[] | undefined>;
@@ -69,6 +71,15 @@ interface OutgoingResponse {
 }
 
 type NextFunction = (err?: unknown) => void;
+
+function validateOptions(options: WebMCPDiscoveryOptions): void {
+  const path=options.manifestPath ?? '/mcp';
+  if(typeof path !== 'string' || path.length>256 || !/^\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(path) || path.split('/').some(p=>p==='.'||p==='..')) throw new Error('Invalid discovery configuration: canonical local path required');
+  for(const v of [options.version,options.serverName]) if(v!==undefined && (typeof v!=='string'||v.length<1||v.length>256||/[^\x20-\x7e]/.test(v))) throw new Error('Invalid discovery configuration: unsafe header');
+  const caps=options.capabilities;const allowed=new Set(['tools','resources','prompts','sampling','logging']);
+  if(caps!==undefined && (!Array.isArray(caps)||caps.length>5||Array.from(caps).some(v=>!allowed.has(v))||new Set(caps).size!==caps.length)) throw new Error('Invalid discovery configuration: capabilities');
+  if(options.onlyOnSuccess!==undefined && typeof options.onlyOnSuccess!=='boolean') throw new Error('Invalid discovery configuration: boolean required');
+}
 
 // ─── Header builder ───
 
@@ -107,6 +118,7 @@ function injectHeaders(
  * Zero config required — just `app.use(webmcpDiscovery())`.
  */
 export function webmcpDiscovery(options: WebMCPDiscoveryOptions = {}) {
+  validateOptions(options);
   const opts = {
     manifestPath: options.manifestPath ?? '/mcp',
     capabilities: options.capabilities ?? (['tools'] as MCPCapability[]),
@@ -158,6 +170,9 @@ export function webmcpDiscovery(options: WebMCPDiscoveryOptions = {}) {
  * ```
  */
 export function webmcpAutoSetup(options: WebMCPAutoSetupOptions = {}) {
+  validateOptions(options);
+  if(options.publicManifest!==undefined && typeof options.publicManifest!=='boolean') throw new Error('Invalid discovery configuration: publicManifest boolean required');
+  if(options.authorize!==undefined && typeof options.authorize!=='function') throw new Error('Invalid discovery configuration: authorize function required');
   const {
     tools = [],
     resources = [],
@@ -207,13 +222,21 @@ export function webmcpAutoSetup(options: WebMCPAutoSetupOptions = {}) {
     },
   };
 
-  return function webmcpAutoSetupMiddleware(
+  return async function webmcpAutoSetupMiddleware(
     req: IncomingRequest,
     res: OutgoingResponse,
     next: NextFunction
-  ): void {
+  ): Promise<void> {
     const url = req.url ?? '';
     const urlWithoutQuery = url.split('?')[0];
+    const isCatalog=[manifestPath,`${manifestPath}/tools`,`${manifestPath}/resources`].includes(urlWithoutQuery);
+    if(isCatalog && (req.method==='GET'||req.method==='HEAD')) {
+      res.setHeader('Cache-Control','private, no-store');
+      if(!options.publicManifest && !options.authorize){res.statusCode=401;if(req.method==='HEAD')res.end();else res.json({error:'Discovery authorization required'});return;}
+      if(options.authorize){try{if(await options.authorize(req)!==true){res.statusCode=403;if(req.method==='HEAD')res.end();else res.json({error:'Discovery access denied'});return;}}catch(error){next(error);return;}}
+      if(req.method==='HEAD'){res.setHeader('Content-Type','application/json');res.end();return;}
+    }
+
 
     // Serve manifest endpoint
     if (req.method === 'GET' && urlWithoutQuery === manifestPath) {

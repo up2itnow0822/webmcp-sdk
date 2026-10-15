@@ -7,3 +7,10 @@ dist/
 .env
 .env.*
 !.env.example
+
+__pycache__/
+*.pyc
+*.tgz
+test-results/
+playwright-report/
+artifacts/

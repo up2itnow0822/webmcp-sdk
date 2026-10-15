@@ -1,4 +1,4 @@
-import { M as ModelContext, b as WebMCPToolDefinition } from './types-XNU26brb.js';
+import { L as LegacyModelContext, b as WebMCPToolDefinition, M as ModelContext, c as ModelContextTool, I as InvokeOptions } from './types-RmhugU8s.js';
 
 /**
  * WebMCP Kit — Testing Utilities
@@ -23,20 +23,23 @@ import { M as ModelContext, b as WebMCPToolDefinition } from './types-XNU26brb.j
  */
 declare function createMockContext(): {
     context: ModelContext;
-    getTools: () => WebMCPToolDefinition<Record<string, unknown>, unknown>[];
-    getTool: (name: string) => WebMCPToolDefinition<Record<string, unknown>, unknown> | undefined;
-    invoke: <T = unknown>(name: string, input: Record<string, unknown>) => Promise<T>;
+    getTools: () => ModelContextTool[];
+    getTool: (name: string) => ModelContextTool | undefined;
+    invoke: <T = unknown>(name: string, input: Record<string, unknown>, options?: InvokeOptions) => Promise<T>;
 };
-/**
- * Install mock context on global navigator for testing.
- * Call cleanup() when done.
- */
+/** Explicit fixture for the historical navigator API. */
+declare function createLegacyMockContext(): {
+    context: LegacyModelContext;
+    getTools: () => WebMCPToolDefinition<Record<string, unknown>, unknown>[];
+    invoke: (name: string, input: Record<string, unknown>) => Promise<unknown>;
+};
+/** Install the current document API fixture; cleanup restores original globals. */
 declare function installMockContext(): {
     cleanup: () => void;
     context: ModelContext;
-    getTools: () => WebMCPToolDefinition<Record<string, unknown>, unknown>[];
-    getTool: (name: string) => WebMCPToolDefinition<Record<string, unknown>, unknown> | undefined;
-    invoke: <T = unknown>(name: string, input: Record<string, unknown>) => Promise<T>;
+    getTools: () => ModelContextTool[];
+    getTool: (name: string) => ModelContextTool | undefined;
+    invoke: <T = unknown>(name: string, input: Record<string, unknown>, options?: InvokeOptions) => Promise<T>;
 };
 /**
  * Validate that a tool definition is well-formed
@@ -102,4 +105,4 @@ declare function scoreToolQuality(tool: WebMCPToolDefinition): {
     }>;
 };
 
-export { type ToolTestCase, type ToolTestResult, createMockContext, formatTestResults, installMockContext, scoreToolQuality, testTool, validateToolDefinition };
+export { type ToolTestCase, type ToolTestResult, createLegacyMockContext, createMockContext, formatTestResults, installMockContext, scoreToolQuality, testTool, validateToolDefinition };

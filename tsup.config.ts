@@ -21,5 +21,6 @@ export default defineConfig([
     sourcemap: true,
     clean: true,
     external: ['react'],
+    noExternal: ['@cfworker/json-schema'],
   },
 ]);

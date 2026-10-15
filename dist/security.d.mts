@@ -1,23 +1,19 @@
-import { T as ToolInvocationEvent, b as WebMCPToolDefinition } from './types-XNU26brb.mjs';
+import { T as ToolInvocationEvent, b as WebMCPToolDefinition, C as ConfirmationProvider } from './types-RmhugU8s.mjs';
 
-/**
- * WebMCP Kit — Security Middleware
- *
- * Rate limiting, input sanitization, and security guards
- * for WebMCP tool handlers.
- */
+/** Bounded input guards, explicit confirmation, admission limits and redacted audit. */
 
 interface RateLimitConfig {
-    /** Maximum invocations per window */
+    /** Maximum admitted invocations per window. Denied attempts do not extend the window. */
     maxInvocations: number;
-    /** Window duration in milliseconds (default: 60000 = 1 minute) */
+    /** Window duration in milliseconds (default 60000). */
     windowMs?: number;
-    /** Message returned when rate limited */
     message?: string;
 }
 declare class RateLimiter {
     private invocations;
-    private config;
+    private readonly maxInvocations;
+    private readonly windowMs;
+    readonly message: string;
     constructor(config: RateLimitConfig);
     check(): {
         allowed: boolean;
@@ -27,55 +23,42 @@ declare class RateLimiter {
     reset(): void;
 }
 interface SanitizeOptions {
-    /** Strip HTML tags from string inputs */
     stripHtml?: boolean;
-    /** Maximum string length for any field (default: 10000) */
+    /** Reject strings exceeding this length BEFORE stripping (default 10000). */
     maxStringLength?: number;
-    /** Maximum array length for any field (default: 100) */
+    /** Reject arrays exceeding this length (default 100). */
     maxArrayLength?: number;
-    /** Maximum object depth (default: 5) */
+    /** Reject values deeper than this limit (default 5). */
     maxDepth?: number;
-    /** Strip null bytes and control characters */
     stripControlChars?: boolean;
+    /** Bound the complete JSON input, including keys (default 65536 bytes). */
+    maxInputBytes?: number;
+    /** Bound the complete JSON input (default 1000 nodes). */
+    maxInputNodes?: number;
 }
 declare function sanitizeInput(input: Record<string, unknown>, options?: SanitizeOptions): Record<string, unknown>;
-interface SecurityConfig {
-    /** Rate limiting configuration */
-    rateLimit?: RateLimitConfig;
-    /** Input sanitization options */
-    sanitize?: SanitizeOptions;
-    /** Blocked input patterns (regex strings) */
-    blockedPatterns?: string[];
-    /** Log all invocations for audit */
-    audit?: boolean;
-    /** Audit log handler */
-    onAudit?: (event: ToolInvocationEvent & {
-        sanitized: boolean;
-        blocked: boolean;
-    }) => void;
+interface SecurityAuditEvent extends ToolInvocationEvent {
+    sanitized: boolean;
+    blocked: boolean;
+    outcome: 'rejected' | 'succeeded' | 'failed';
+    /** Stable classification only; raw handler errors and outputs are never logged. */
+    errorCode?: 'rate_limit' | 'input_rejected' | 'policy_blocked' | 'admission_rejected' | 'aborted' | 'handler_error';
+    durationMs: number;
 }
-/**
- * Wrap a tool with security middleware
- *
- * @example
- * ```ts
- * const secureTool = withSecurity(myTool, {
- *   rateLimit: { maxInvocations: 10, windowMs: 60000 },
- *   sanitize: { stripHtml: true },
- *   blockedPatterns: ['<script', 'javascript:'],
- *   audit: true,
- * });
- * ```
- */
+interface SecurityConfig {
+    rateLimit?: RateLimitConfig;
+    sanitize?: SanitizeOptions;
+    /** Case-insensitive literal substrings, NOT regular expressions. Max 32 rules of 256 characters each. */
+    blockedPatterns?: string[];
+    audit?: boolean;
+    /** Required when audit=true. Throws propagate to direct callers; use a reliable synchronous sink. */
+    onAudit?: (event: SecurityAuditEvent) => void;
+    /** Inputs omitted by default. Allowed fields still have sensitive keys recursively redacted. */
+    auditInputFields?: string[];
+}
+/** Rate admission happens before kit queueing; direct handler calls use the same guard. */
 declare function withSecurity<TInput extends Record<string, unknown>, TOutput>(tool: WebMCPToolDefinition<TInput, TOutput>, config: SecurityConfig): WebMCPToolDefinition<TInput, TOutput>;
-/**
- * Create a confirmation-required wrapper for destructive tools
- *
- * @example
- * ```ts
- * const safeDeleteTool = withConfirmation(deleteTool, 'This will delete your account.');
- * ```
- */
-declare function withConfirmation<TInput extends Record<string, unknown>, TOutput>(tool: WebMCPToolDefinition<TInput, TOutput>, reason: string): WebMCPToolDefinition<TInput, TOutput>;
+/** Destructive actions require an explicit provider returning literal true. */
+declare function withConfirmation<TInput extends Record<string, unknown>, TOutput>(tool: WebMCPToolDefinition<TInput, TOutput>, reason: string, provider?: ConfirmationProvider): WebMCPToolDefinition<TInput, TOutput>;
 
-export { type RateLimitConfig, RateLimiter, type SanitizeOptions, type SecurityConfig, sanitizeInput, withConfirmation, withSecurity };
+export { type RateLimitConfig, RateLimiter, type SanitizeOptions, type SecurityAuditEvent, type SecurityConfig, sanitizeInput, withConfirmation, withSecurity };

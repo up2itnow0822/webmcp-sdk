@@ -1,0 +1,2 @@
+# Documentation
+Keep current SDK/studio implementation, migration, threat-model, release checks and findings evidence accurate. Historical test counts must be labeled. Domain workers own assigned task reports, coordinator root integration records. No phantom exports, server transports, fabricated settlement, universal browser promises or absolute-security claims. Financial deployment verification remains external.

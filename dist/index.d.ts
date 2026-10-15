@@ -1,81 +1,37 @@
-import { W as WebMCPKitConfig, b as WebMCPToolDefinition, R as RegisterToolOptions, J as JSONSchema, c as ToolAnnotations, d as ToolBuilder } from './types-XNU26brb.js';
-export { e as JSONSchemaProperty, M as ModelContext, T as ToolInvocationEvent, a as ToolResult } from './types-XNU26brb.js';
+import { W as WebMCPKitConfig, T as ToolInvocationEvent, a as ToolResult, b as WebMCPToolDefinition, R as RegisterToolOptions, I as InvokeOptions, J as JSONSchema, d as ToolExecutionContext, e as ToolAnnotations, f as ToolBuilder } from './types-RmhugU8s.js';
+export { g as JSONSchemaProperty, M as ModelContext } from './types-RmhugU8s.js';
 
-/**
- * WebMCP Kit — Core SDK
- *
- * Makes any website agent-ready in minutes.
- * Wraps navigator.modelContext with type safety, validation,
- * middleware, and developer experience.
- */
+/** Bounded local execution with observable native-browser registration. */
 
+type CompletionListener = (event: ToolInvocationEvent, result: ToolResult) => void;
 declare class WebMCPKit {
     private tools;
     private config;
     private limiter;
-    private _registered;
+    private admitted;
+    private registrations;
+    private listeners;
+    private lifetimes;
     constructor(config?: WebMCPKitConfig);
-    /**
-     * Check if WebMCP is available in the current browser
-     */
     static isAvailable(): boolean;
-    /**
-     * Get the full tool name with optional prefix
-     */
     private getFullName;
-    /**
-     * Register a tool with WebMCP
-     */
+    subscribe(listener: CompletionListener): () => void;
     register<TInput extends Record<string, unknown> = Record<string, unknown>, TOutput = unknown>(tool: WebMCPToolDefinition<TInput, TOutput>, options?: RegisterToolOptions): void;
-    /**
-     * Unregister a tool
-     */
+    ready(): Promise<void>;
     unregister(name: string): void;
-    /**
-     * Unregister all tools
-     */
     unregisterAll(): void;
-    /**
-     * Get all registered tool definitions (useful for testing/debugging)
-     */
     getTools(): WebMCPToolDefinition[];
-    /**
-     * Get a specific tool by name
-     */
     getTool(name: string): WebMCPToolDefinition | undefined;
-    /**
-     * Invoke a tool directly (useful for testing without browser)
-     */
-    invoke<T = unknown>(name: string, input: Record<string, unknown>): Promise<T>;
-    /**
-     * Request user interaction (confirmation dialog)
-     */
+    invoke<T = unknown>(name: string, input: Record<string, unknown>, options?: InvokeOptions): Promise<T>;
     requestUserInteraction(reason?: string): Promise<boolean>;
+    private reportError;
+    private complete;
+    /** Retain total admission until asynchronous policy/operation work actually quiesces. */
+    private acquireAdmission;
+    private execute;
 }
-/**
- * Fluent builder for creating WebMCP tools
- *
- * @example
- * ```ts
- * const searchTool = tool('search')
- *   .description('Search products')
- *   .input<{ query: string }>({
- *     type: 'object',
- *     properties: { query: { type: 'string' } },
- *     required: ['query']
- *   })
- *   .annotate({ readOnlyHint: true })
- *   .handle(async ({ query }) => searchProducts(query));
- * ```
- */
 declare function tool(name: string): ToolBuilder;
-/**
- * Create a new WebMCP Kit instance
- */
 declare function createKit(config?: WebMCPKitConfig): WebMCPKit;
-/**
- * Quick tool registration for simple cases
- */
-declare function defineTool<TInput extends Record<string, unknown>, TOutput>(name: string, description: string, inputSchema: JSONSchema, handler: (input: TInput) => Promise<TOutput> | TOutput, annotations?: ToolAnnotations): WebMCPToolDefinition<TInput, TOutput>;
+declare function defineTool<TInput extends Record<string, unknown>, TOutput>(name: string, description: string, inputSchema: JSONSchema, handler: (input: TInput, context?: ToolExecutionContext) => Promise<TOutput> | TOutput, annotations?: ToolAnnotations): WebMCPToolDefinition<TInput, TOutput>;
 
-export { JSONSchema, RegisterToolOptions, ToolAnnotations, ToolBuilder, WebMCPKit, WebMCPKitConfig, WebMCPToolDefinition, createKit, defineTool, tool };
+export { JSONSchema, RegisterToolOptions, ToolAnnotations, ToolBuilder, ToolInvocationEvent, ToolResult, WebMCPKit, WebMCPKitConfig, WebMCPToolDefinition, createKit, defineTool, tool };

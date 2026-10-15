@@ -11,7 +11,12 @@ import type {
   JSONSchema,
   ToolResult,
   ModelContext,
+  ModelContextTool,
+  LegacyModelContext,
+  InvokeOptions,
 } from './types.js';
+
+import { compileSchema } from './validation.js';
 
 // ─── Mock Browser Environment ───
 
@@ -29,58 +34,43 @@ import type {
  * ```
  */
 export function createMockContext() {
-  const tools = new Map<string, WebMCPToolDefinition>();
-
+  const tools = new Map<string, ModelContextTool>();
   const context: ModelContext = {
-    registerTool(tool: WebMCPToolDefinition) {
+    async registerTool(tool, options) {
+      if (options?.signal?.aborted) throw new Error('Registration aborted');
+      if (tools.has(tool.name)) throw new Error(`Tool "${tool.name}" already registered`);
       tools.set(tool.name, tool);
-    },
-    unregisterTool(name: string) {
-      tools.delete(name);
-    },
-    getRegisteredTools() {
-      return Array.from(tools.values());
-    },
-    async requestUserInteraction() {
-      return true; // Always approve in tests
+      options?.signal?.addEventListener('abort', () => {if (tools.get(tool.name) === tool) tools.delete(tool.name);}, {once: true});
     },
   };
-
   return {
-    context,
-    getTools: () => Array.from(tools.values()),
-    getTool: (name: string) => tools.get(name),
-    invoke: async <T = unknown>(name: string, input: Record<string, unknown>): Promise<T> => {
-      const tool = tools.get(name);
-      if (!tool) throw new Error(`Tool "${name}" not registered`);
-      return tool.handler(input) as Promise<T>;
+    context, getTools: () => [...tools.values()], getTool: (name: string) => tools.get(name),
+    invoke: async <T = unknown>(name: string, input: Record<string, unknown>, options: InvokeOptions = {}): Promise<T> => {
+      const tool = tools.get(name); if (!tool) throw new Error(`Tool "${name}" not registered`);
+      return tool.execute(input, options) as Promise<T>;
     },
   };
 }
-
-/**
- * Install mock context on global navigator for testing.
- * Call cleanup() when done.
- */
+/** Explicit fixture for the historical navigator API. */
+export function createLegacyMockContext() {
+  const tools = new Map<string, WebMCPToolDefinition>();
+  const context: LegacyModelContext = {registerTool: tool => {tools.set(tool.name, tool);}, unregisterTool: name => {tools.delete(name);}, getRegisteredTools: () => [...tools.values()]};
+  return {context, getTools: () => [...tools.values()], invoke: async (name: string, input: Record<string, unknown>) => {
+    const tool = tools.get(name); if (!tool) throw new Error(`Tool "${name}" not registered`); return tool.handler(input);
+  }};
+}
+/** Install the current document API fixture; cleanup restores original globals. */
 export function installMockContext() {
   const mock = createMockContext();
-
-  const originalModelContext = (globalThis as any).navigator?.modelContext;
-  if (typeof globalThis.navigator === 'undefined') {
-    (globalThis as any).navigator = {};
-  }
-  (globalThis as any).navigator.modelContext = mock.context;
-
-  return {
-    ...mock,
-    cleanup: () => {
-      if (originalModelContext !== undefined) {
-        (globalThis as any).navigator.modelContext = originalModelContext;
-      } else {
-        delete (globalThis as any).navigator.modelContext;
-      }
-    },
-  };
+  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const originalDocument = globalThis.document;
+  const modelDescriptor = originalDocument ? Object.getOwnPropertyDescriptor(originalDocument, 'modelContext') : undefined;
+  if (!originalDocument) Object.defineProperty(globalThis, 'document', {configurable: true, writable: true, value: {}});
+  Object.defineProperty(globalThis.document, 'modelContext', {configurable: true, writable: true, value: mock.context});
+  return {...mock, cleanup: () => {
+    if (originalDocument) {if (modelDescriptor) Object.defineProperty(originalDocument, 'modelContext', modelDescriptor); else delete originalDocument.modelContext;}
+    else if (documentDescriptor) Object.defineProperty(globalThis, 'document', documentDescriptor); else delete (globalThis as any).document;
+  }};
 }
 
 // ─── Schema Validation ───
@@ -121,11 +111,14 @@ export function validateToolDefinition(tool: WebMCPToolDefinition): {
   }
   if (tool.inputSchema?.properties) {
     for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
-      if (!prop.type) errors.push(`Property "${key}" is missing type`);
-      if (!prop.description) {
+      if (typeof prop !== 'boolean' && !prop.description) {
         warnings.push(`Property "${key}" has no description — this helps LLMs fill it correctly`);
       }
     }
+  }
+
+  if (tool.inputSchema) {
+    try {compileSchema(tool.inputSchema);} catch(error) {errors.push(error instanceof Error ? error.message : 'Invalid inputSchema');}
   }
 
   // Handler validation
@@ -308,12 +301,12 @@ export function scoreToolQuality(tool: WebMCPToolDefinition): {
   if (tool.inputSchema?.properties && Object.keys(tool.inputSchema.properties).length > 0) schemaScore += 5;
   if (tool.inputSchema?.required && tool.inputSchema.required.length > 0) schemaScore += 3;
   const hasDescriptions = tool.inputSchema?.properties
-    ? Object.values(tool.inputSchema.properties).every((p) => p.description)
+    ? Object.values(tool.inputSchema.properties).every((p) => typeof p !== 'boolean' && p.description)
     : false;
   if (hasDescriptions) schemaScore += 5;
   if (tool.inputSchema?.properties) {
     const hasConstraints = Object.values(tool.inputSchema.properties).some(
-      (p) => p.enum || p.minimum !== undefined || p.maximum !== undefined || p.pattern
+      (p) => typeof p !== 'boolean' && (p.enum || p.minimum !== undefined || p.maximum !== undefined || p.pattern)
     );
     if (hasConstraints) schemaScore += 2;
   }

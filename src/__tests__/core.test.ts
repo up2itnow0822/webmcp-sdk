@@ -234,7 +234,7 @@ describe('WebMCPKit', () => {
     expect(WebMCPKit.isAvailable()).toBe(false);
   });
 
-  it('auto-registers tools in navigator.modelContext when available', () => {
+  it('auto-registers tools in document.modelContext when available', () => {
     const mock = installMockContext();
     cleanup = mock.cleanup;
 
@@ -254,7 +254,7 @@ describe('WebMCPKit', () => {
     expect(mock.getTools()[0].name).toBe('demo.hello');
   });
 
-  it('unregister removes the tool from navigator.modelContext when available', () => {
+  it('unregister removes the tool from document.modelContext when available', () => {
     const mock = installMockContext();
     cleanup = mock.cleanup;
 

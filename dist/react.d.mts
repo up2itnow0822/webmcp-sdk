@@ -1,95 +1,48 @@
+import * as react from 'react';
+import { ReactNode } from 'react';
 import { WebMCPKit } from './index.mjs';
-import { W as WebMCPKitConfig, T as ToolInvocationEvent, a as ToolResult, b as WebMCPToolDefinition } from './types-XNU26brb.mjs';
+import { W as WebMCPKitConfig, T as ToolInvocationEvent, a as ToolResult, b as WebMCPToolDefinition } from './types-RmhugU8s.mjs';
 
+interface KitScope {
+    kit: WebMCPKit;
+    config?: WebMCPKitConfig;
+    enabled: boolean;
+}
+type WebMCPProviderProps = {
+    children?: ReactNode;
+    /** Disable to revoke descendant hook registrations, for example on logout. */
+    enabled?: boolean;
+} & ({
+    kit: WebMCPKit;
+    config?: never;
+} | {
+    config?: WebMCPKitConfig;
+    kit?: never;
+});
 /**
- * WebMCP Kit — React Hooks & Components
- *
- * React bindings for WebMCP tool registration.
- * Tools are registered on mount and cleaned up on unmount.
+ * Scope hooks to a caller-supplied kit or a kit created from explicit configuration.
+ * Configuration is immutable for a mounted provider: remount with a new key to
+ * change policy. Supplied kits may be replaced; old hook registrations are revoked.
  */
-
-/**
- * Register a WebMCP tool that lives for the component's lifetime.
- * Tool is registered on mount and unregistered on unmount.
- *
- * @example
- * ```tsx
- * function SearchComponent() {
- *   useWebMCPTool({
- *     name: 'search',
- *     description: 'Search products in the catalog',
- *     inputSchema: {
- *       type: 'object',
- *       properties: { query: { type: 'string' } },
- *       required: ['query']
- *     },
- *     handler: async ({ query }) => {
- *       const results = await searchProducts(query);
- *       return { results, count: results.length };
- *     }
- *   });
- *
- *   return <div>Search is agent-ready!</div>;
- * }
- * ```
- */
-declare function useWebMCPTool<TInput extends Record<string, unknown> = Record<string, unknown>, TOutput = unknown>(tool: WebMCPToolDefinition<TInput, TOutput>, config?: WebMCPKitConfig): void;
-/**
- * Register multiple WebMCP tools at once.
- *
- * @example
- * ```tsx
- * function App() {
- *   useWebMCPTools([searchTool, cartTool, checkoutTool]);
- *   return <div>App is agent-ready!</div>;
- * }
- * ```
- */
-declare function useWebMCPTools(tools: WebMCPToolDefinition[], config?: WebMCPKitConfig): void;
-/**
- * Check if WebMCP is available in the current browser.
- *
- * @example
- * ```tsx
- * function App() {
- *   const isAvailable = useWebMCPAvailable();
- *   return isAvailable
- *     ? <AgentReadyApp />
- *     : <RegularApp />;
- * }
- * ```
- */
+declare function WebMCPProvider({ children, enabled, kit, config, }: WebMCPProviderProps): react.FunctionComponentElement<react.ProviderProps<KitScope | null>>;
+interface WebMCPToolLifecycleOptions {
+    /** False revokes the tool; true registers its latest committed definition. */
+    enabled?: boolean;
+}
+/** Register one tool. Changed callbacks or metadata revoke prior authorization and re-register. */
+declare function useWebMCPTool<TInput extends Record<string, unknown> = Record<string, unknown>, TOutput = unknown>(tool: WebMCPToolDefinition<TInput, TOutput>, config?: WebMCPKitConfig, options?: WebMCPToolLifecycleOptions): void;
+/** Register a component-owned set of tools with atomic cleanup on registration failure. */
+declare function useWebMCPTools(tools: WebMCPToolDefinition[], config?: WebMCPKitConfig, options?: WebMCPToolLifecycleOptions): void;
+/** Check whether the current browser exposes a supported WebMCP API. */
 declare function useWebMCPAvailable(): boolean;
-/**
- * Track tool invocations for analytics/debugging.
- *
- * @example
- * ```tsx
- * function DebugPanel() {
- *   const { invocations, clearLog } = useWebMCPLog();
- *   return (
- *     <div>
- *       <h3>Agent Activity ({invocations.length} calls)</h3>
- *       {invocations.map(inv => (
- *         <div key={inv.timestamp}>
- *           {inv.toolName}: {inv.result?.success ? '✅' : '❌'}
- *         </div>
- *       ))}
- *       <button onClick={clearLog}>Clear</button>
- *     </div>
- *   );
- * }
- * ```
- */
+/** Subscribe to completion events without replacing the kit's configured callbacks. */
 declare function useWebMCPLog(maxEntries?: number): {
     invocations: (ToolInvocationEvent & {
         result?: ToolResult;
     })[];
     clearLog: () => void;
 };
-/**
- * Get the shared WebMCP Kit instance for advanced usage.
- */
+/** Return the provider's kit, or the backwards-compatible shared default. */
 declare function useWebMCPKit(config?: WebMCPKitConfig): WebMCPKit;
 
-export { useWebMCPAvailable, useWebMCPKit, useWebMCPLog, useWebMCPTool, useWebMCPTools };
+export { WebMCPProvider, type WebMCPProviderProps, type WebMCPToolLifecycleOptions, useWebMCPAvailable, useWebMCPKit, useWebMCPLog, useWebMCPTool, useWebMCPTools };
