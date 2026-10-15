@@ -3,10 +3,17 @@ var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { en
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
 // src/input.ts
-var DEFAULT_INPUT_LIMITS = Object.freeze({ maxInputBytes: 65536, maxInputNodes: 1e3, maxInputDepth: 10 });
+var DEFAULT_INPUT_LIMITS = Object.freeze({
+  maxInputBytes: 65536,
+  maxInputNodes: 1e3,
+  maxInputDepth: 10
+});
 var forbidden = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
 function validateLimit(name, value, allowZero = false) {
-  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1)) throw new Error(`WebMCP Kit: ${name} must be a ${allowZero ? "nonnegative" : "positive"} safe integer`);
+  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1))
+    throw new Error(
+      `WebMCP Kit: ${name} must be a ${allowZero ? "nonnegative" : "positive"} safe integer`
+    );
 }
 function snapshotInput(input, limits = {}) {
   const budget = {
@@ -14,19 +21,22 @@ function snapshotInput(input, limits = {}) {
     maxInputNodes: limits.maxInputNodes ?? DEFAULT_INPUT_LIMITS.maxInputNodes,
     maxInputDepth: limits.maxInputDepth ?? DEFAULT_INPUT_LIMITS.maxInputDepth
   };
-  for (const [name, value] of Object.entries(budget)) validateLimit(name, value);
+  for (const [name, value] of Object.entries(budget))
+    validateLimit(name, value);
   let nodes = 0;
   let bytes = 0;
   const ancestors = /* @__PURE__ */ new Set();
   const charge = (amount) => {
     bytes += amount;
-    if (bytes > budget.maxInputBytes) throw new Error("Input exceeds maxInputBytes limit");
+    if (bytes > budget.maxInputBytes)
+      throw new Error("Input exceeds maxInputBytes limit");
   };
   const stringBytes = (value) => {
     charge(2);
     for (let i = 0; i < value.length; i++) {
       const n = value.charCodeAt(i);
-      if (n === 34 || n === 92 || n === 8 || n === 9 || n === 10 || n === 12 || n === 13) charge(2);
+      if (n === 34 || n === 92 || n === 8 || n === 9 || n === 10 || n === 12 || n === 13)
+        charge(2);
       else if (n < 32) charge(6);
       else if (n < 128) charge(1);
       else if (n < 2048) charge(2);
@@ -38,8 +48,10 @@ function snapshotInput(input, limits = {}) {
     }
   };
   const clone = (value, depth) => {
-    if (++nodes > budget.maxInputNodes) throw new Error("Input exceeds maxInputNodes limit");
-    if (depth > budget.maxInputDepth) throw new Error("Input exceeds maxInputDepth limit");
+    if (++nodes > budget.maxInputNodes)
+      throw new Error("Input exceeds maxInputNodes limit");
+    if (depth > budget.maxInputDepth)
+      throw new Error("Input exceeds maxInputDepth limit");
     if (value === null) {
       charge(4);
       return null;
@@ -56,12 +68,16 @@ function snapshotInput(input, limits = {}) {
       charge(String(value).length);
       return value;
     }
-    if (typeof value !== "object") throw new Error("Input must contain finite JSON-compatible data");
+    if (typeof value !== "object")
+      throw new Error("Input must contain finite JSON-compatible data");
     const object = value;
     const array = Array.isArray(object);
     const proto = Object.getPrototypeOf(object);
-    if (array ? proto !== Array.prototype : proto !== Object.prototype && proto !== null) throw new Error("Input contains an arbitrary prototype");
-    for (const key of forbidden) if (Object.prototype.hasOwnProperty.call(object, key)) throw new Error(`Input contains forbidden key: ${key}`);
+    if (array ? proto !== Array.prototype : proto !== Object.prototype && proto !== null)
+      throw new Error("Input contains an arbitrary prototype");
+    for (const key of forbidden)
+      if (Object.prototype.hasOwnProperty.call(object, key))
+        throw new Error(`Input contains forbidden key: ${key}`);
     if (ancestors.has(object)) throw new Error("Input contains a cycle");
     ancestors.add(object);
     charge(2);
@@ -69,12 +85,15 @@ function snapshotInput(input, limits = {}) {
     let count = 0;
     for (const key in object) {
       if (!Object.prototype.hasOwnProperty.call(object, key)) continue;
-      if (forbidden.has(key)) throw new Error(`Input contains forbidden key: ${key}`);
+      if (forbidden.has(key))
+        throw new Error(`Input contains forbidden key: ${key}`);
       count++;
-      if (nodes >= budget.maxInputNodes) throw new Error("Input exceeds maxInputNodes limit");
+      if (nodes >= budget.maxInputNodes)
+        throw new Error("Input exceeds maxInputNodes limit");
       const desc = Object.getOwnPropertyDescriptor(object, key);
       if (!("value" in desc)) throw new Error("Input contains an accessor");
-      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= object.length)) throw new Error("Input array contains non-index fields");
+      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= object.length))
+        throw new Error("Input array contains non-index fields");
       if (count > 1) charge(1);
       if (!array) {
         stringBytes(key);
@@ -82,13 +101,22 @@ function snapshotInput(input, limits = {}) {
       }
       result[key] = clone(desc.value, depth + 1);
     }
-    if (array && count !== object.length) throw new Error("Input arrays must not contain holes");
-    if (Object.getOwnPropertySymbols(object).length) throw new Error("Input contains symbol fields");
+    if (array && count !== object.length)
+      throw new Error("Input arrays must not contain holes");
+    if (Object.getOwnPropertySymbols(object).length)
+      throw new Error("Input contains symbol fields");
     ancestors.delete(object);
     return result;
   };
-  if (typeof input !== "object" || input === null || Array.isArray(input)) throw new Error("Input must be an object");
+  if (typeof input !== "object" || input === null || Array.isArray(input))
+    throw new Error("Input must be an object");
   return clone(input, 0);
+}
+function freezeInput(value) {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) freezeInput(child);
+    Object.freeze(value);
+  }
 }
 
 // node_modules/@cfworker/json-schema/dist/esm/deep-compare-strict.js
@@ -1166,61 +1194,106 @@ var Validator = class {
 var schemaRef = { $ref: "#" };
 var schemaMap = { type: "object", additionalProperties: schemaRef };
 var nonnegativeInteger = { type: "integer", minimum: 0 };
-var strings = { type: "array", items: { type: "string" }, uniqueItems: true };
+var strings = {
+  type: "array",
+  items: { type: "string" },
+  uniqueItems: true
+};
 var schemaArray = { type: "array", minItems: 1, items: schemaRef };
 var metaSchema = {
-  anyOf: [{ type: "boolean" }, { type: "object", properties: {
-    type: { anyOf: [{ enum: ["object", "array", "string", "number", "integer", "boolean", "null"] }, { type: "array", minItems: 1, uniqueItems: true, items: { enum: ["object", "array", "string", "number", "integer", "boolean", "null"] } }] },
-    properties: schemaMap,
-    patternProperties: schemaMap,
-    $defs: schemaMap,
-    definitions: schemaMap,
-    required: strings,
-    enum: { type: "array", minItems: 1, uniqueItems: true },
-    $ref: { type: "string" },
-    $id: { type: "string" },
-    $schema: { type: "string" },
-    $anchor: { type: "string" },
-    additionalProperties: schemaRef,
-    unevaluatedProperties: schemaRef,
-    not: schemaRef,
-    if: schemaRef,
-    then: schemaRef,
-    else: schemaRef,
-    anyOf: schemaArray,
-    oneOf: schemaArray,
-    allOf: schemaArray,
-    items: { anyOf: [schemaRef, { type: "array", items: schemaRef }] },
-    prefixItems: schemaArray,
-    additionalItems: schemaRef,
-    unevaluatedItems: schemaRef,
-    contains: schemaRef,
-    propertyNames: schemaRef,
-    minItems: nonnegativeInteger,
-    maxItems: nonnegativeInteger,
-    minContains: nonnegativeInteger,
-    maxContains: nonnegativeInteger,
-    minProperties: nonnegativeInteger,
-    maxProperties: nonnegativeInteger,
-    minLength: nonnegativeInteger,
-    maxLength: nonnegativeInteger,
-    uniqueItems: { type: "boolean" },
-    minimum: { type: "number" },
-    maximum: { type: "number" },
-    multipleOf: { type: "number", exclusiveMinimum: 0 },
-    exclusiveMinimum: { type: ["number", "boolean"] },
-    exclusiveMaximum: { type: ["number", "boolean"] },
-    pattern: { type: "string" },
-    format: { type: "string" },
-    dependentRequired: { type: "object", additionalProperties: strings },
-    dependentSchemas: schemaMap,
-    dependencies: { type: "object", additionalProperties: { anyOf: [schemaRef, strings] } }
-  } }]
+  anyOf: [
+    { type: "boolean" },
+    {
+      type: "object",
+      properties: {
+        type: {
+          anyOf: [
+            {
+              enum: [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            },
+            {
+              type: "array",
+              minItems: 1,
+              uniqueItems: true,
+              items: {
+                enum: [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "integer",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        properties: schemaMap,
+        patternProperties: schemaMap,
+        $defs: schemaMap,
+        definitions: schemaMap,
+        required: strings,
+        enum: { type: "array", minItems: 1, uniqueItems: true },
+        $ref: { type: "string" },
+        $id: { type: "string" },
+        $schema: { type: "string" },
+        $anchor: { type: "string" },
+        additionalProperties: schemaRef,
+        unevaluatedProperties: schemaRef,
+        not: schemaRef,
+        if: schemaRef,
+        then: schemaRef,
+        else: schemaRef,
+        anyOf: schemaArray,
+        oneOf: schemaArray,
+        allOf: schemaArray,
+        items: { anyOf: [schemaRef, { type: "array", items: schemaRef }] },
+        prefixItems: schemaArray,
+        additionalItems: schemaRef,
+        unevaluatedItems: schemaRef,
+        contains: schemaRef,
+        propertyNames: schemaRef,
+        minItems: nonnegativeInteger,
+        maxItems: nonnegativeInteger,
+        minContains: nonnegativeInteger,
+        maxContains: nonnegativeInteger,
+        minProperties: nonnegativeInteger,
+        maxProperties: nonnegativeInteger,
+        minLength: nonnegativeInteger,
+        maxLength: nonnegativeInteger,
+        uniqueItems: { type: "boolean" },
+        minimum: { type: "number" },
+        maximum: { type: "number" },
+        multipleOf: { type: "number", exclusiveMinimum: 0 },
+        exclusiveMinimum: { type: ["number", "boolean"] },
+        exclusiveMaximum: { type: ["number", "boolean"] },
+        pattern: { type: "string" },
+        format: { type: "string" },
+        dependentRequired: { type: "object", additionalProperties: strings },
+        dependentSchemas: schemaMap,
+        dependencies: {
+          type: "object",
+          additionalProperties: { anyOf: [schemaRef, strings] }
+        }
+      }
+    }
+  ]
 };
 var metaValidator = new Validator(metaSchema, "2020-12");
 function checkSafePattern(pattern) {
   const unsupported = () => {
-    throw new Error("Unsupported JSON Schema pattern: use the bounded linear regular-expression subset");
+    throw new Error(
+      "Unsupported JSON Schema pattern: use the bounded linear regular-expression subset"
+    );
   };
   if (pattern.length > 512) unsupported();
   let i = 0;
@@ -1283,37 +1356,83 @@ function checkSafePattern(pattern) {
 function checkSubschemas(schema, draft) {
   if (!schema || typeof schema !== "object") return;
   const obj = schema;
-  for (const keyword of ["$dynamicRef", "$dynamicAnchor", "__absolute_ref__", "__absolute_recursive_ref__", "__absolute_uri__"]) {
-    if (Object.prototype.hasOwnProperty.call(obj, keyword)) throw new Error(`Unsupported or internal JSON Schema keyword: ${keyword}`);
+  for (const keyword of [
+    "$dynamicRef",
+    "$dynamicAnchor",
+    "__absolute_ref__",
+    "__absolute_recursive_ref__",
+    "__absolute_uri__"
+  ]) {
+    if (Object.prototype.hasOwnProperty.call(obj, keyword))
+      throw new Error(
+        `Unsupported or internal JSON Schema keyword: ${keyword}`
+      );
   }
   for (const keyword of ["exclusiveMinimum", "exclusiveMaximum"]) {
-    if (obj[keyword] !== void 0 && typeof obj[keyword] !== (draft === "4" ? "boolean" : "number")) throw new Error(`Invalid JSON Schema ${keyword} for draft ${draft}`);
+    if (obj[keyword] !== void 0 && typeof obj[keyword] !== (draft === "4" ? "boolean" : "number"))
+      throw new Error(`Invalid JSON Schema ${keyword} for draft ${draft}`);
   }
-  if (draft === "2020-12" && Array.isArray(obj.items)) throw new Error("Invalid JSON Schema: 2020-12 uses prefixItems for tuple schemas");
-  if (typeof obj.format === "string" && ["url", "uri", "uri-reference"].includes(obj.format)) throw new Error(`Unsupported JSON Schema format with complex upstream regular expressions: ${obj.format}`);
+  if (draft === "2020-12" && Array.isArray(obj.items))
+    throw new Error(
+      "Invalid JSON Schema: 2020-12 uses prefixItems for tuple schemas"
+    );
+  if (typeof obj.format === "string" && ["url", "uri", "uri-reference"].includes(obj.format))
+    throw new Error(
+      `Unsupported JSON Schema format with complex upstream regular expressions: ${obj.format}`
+    );
   if (typeof obj.pattern === "string") checkSafePattern(obj.pattern);
-  for (const keyword of ["properties", "patternProperties", "$defs", "definitions", "dependentSchemas", "dependencies"]) {
+  for (const keyword of [
+    "properties",
+    "patternProperties",
+    "$defs",
+    "definitions",
+    "dependentSchemas",
+    "dependencies"
+  ]) {
     const map = obj[keyword];
-    if (map && typeof map === "object") for (const [key, value] of Object.entries(map)) {
-      if (keyword === "patternProperties") checkSafePattern(key);
-      checkSubschemas(value, draft);
-    }
+    if (map && typeof map === "object")
+      for (const [key, value] of Object.entries(map)) {
+        if (keyword === "patternProperties") checkSafePattern(key);
+        checkSubschemas(value, draft);
+      }
   }
   for (const keyword of ["anyOf", "oneOf", "allOf", "prefixItems"]) {
     const values = obj[keyword];
-    if (Array.isArray(values)) values.forEach((value) => checkSubschemas(value, draft));
+    if (Array.isArray(values))
+      values.forEach((value) => checkSubschemas(value, draft));
   }
-  for (const keyword of ["not", "if", "then", "else", "items", "additionalItems", "additionalProperties", "unevaluatedItems", "unevaluatedProperties", "contains", "propertyNames"]) {
+  for (const keyword of [
+    "not",
+    "if",
+    "then",
+    "else",
+    "items",
+    "additionalItems",
+    "additionalProperties",
+    "unevaluatedItems",
+    "unevaluatedProperties",
+    "contains",
+    "propertyNames"
+  ]) {
     const value = obj[keyword];
-    if (Array.isArray(value)) value.forEach((item) => checkSubschemas(item, draft));
+    if (Array.isArray(value))
+      value.forEach((item) => checkSubschemas(item, draft));
     else checkSubschemas(value, draft);
   }
 }
 function compileSchema(schema) {
-  const copied = snapshotInput(schema, { maxInputBytes: 262144, maxInputNodes: 1e4, maxInputDepth: 64 });
+  const copied = snapshotInput(schema, {
+    maxInputBytes: 262144,
+    maxInputNodes: 1e4,
+    maxInputDepth: 64
+  });
   const shape = metaValidator.validate(copied);
-  if (!shape.valid) throw new Error(`Invalid JSON Schema: ${shape.errors.map((error) => error.error).join("; ")}`);
-  if (copied.type !== "object") throw new Error('WebMCP Kit: inputSchema must have type "object"');
+  if (!shape.valid)
+    throw new Error(
+      `Invalid JSON Schema: ${shape.errors.map((error) => error.error).join("; ")}`
+    );
+  if (copied.type !== "object")
+    throw new Error('WebMCP Kit: inputSchema must have type "object"');
   const draftByUri = {
     "http://json-schema.org/draft-04/schema#": "4",
     "http://json-schema.org/draft-07/schema#": "7",
@@ -1321,35 +1440,52 @@ function compileSchema(schema) {
     "https://json-schema.org/draft/2020-12/schema": "2020-12"
   };
   const uri2 = copied.$schema;
-  if (uri2 !== void 0 && (typeof uri2 !== "string" || !draftByUri[uri2])) throw new Error("Unsupported JSON Schema draft");
+  if (uri2 !== void 0 && (typeof uri2 !== "string" || !draftByUri[uri2]))
+    throw new Error("Unsupported JSON Schema draft");
   const draft = uri2 ? draftByUri[uri2] : "2020-12";
   checkSubschemas(copied, draft);
   const validator = new Validator(copied, draft);
   return (input) => {
     const result = validator.validate(input);
-    return { valid: result.valid, errors: result.errors.map((error) => `${error.instanceLocation || "/"}: ${error.error}${error.keyword === "enum" ? " (must be one of enum values)" : ""}`) };
+    return {
+      valid: result.valid,
+      errors: result.errors.map(
+        (error) => `${error.instanceLocation || "/"}: ${error.error}${error.keyword === "enum" ? " (must be one of enum values)" : ""}`
+      )
+    };
   };
 }
 
 // src/security.ts
 function positiveInteger(value, name) {
-  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} limit must be a positive safe integer`);
+  if (!Number.isSafeInteger(value) || value <= 0)
+    throw new Error(`${name} limit must be a positive safe integer`);
   return value;
 }
 var RateLimiter = class {
   constructor(config) {
     this.invocations = [];
-    this.maxInvocations = positiveInteger(config.maxInvocations, "maxInvocations");
+    this.maxInvocations = positiveInteger(
+      config.maxInvocations,
+      "maxInvocations"
+    );
     this.windowMs = positiveInteger(config.windowMs ?? 6e4, "windowMs");
     this.message = config.message ?? "Rate limit exceeded. Please try again later.";
   }
   check() {
     const now = Date.now();
-    this.invocations = this.invocations.filter((time2) => time2 > now - this.windowMs);
+    this.invocations = this.invocations.filter(
+      (time2) => time2 > now - this.windowMs
+    );
     const resetMs = this.invocations.length ? Math.max(0, this.invocations[0] + this.windowMs - now) : 0;
-    if (this.invocations.length >= this.maxInvocations) return { allowed: false, remaining: 0, resetMs };
+    if (this.invocations.length >= this.maxInvocations)
+      return { allowed: false, remaining: 0, resetMs };
     this.invocations.push(now);
-    return { allowed: true, remaining: this.maxInvocations - this.invocations.length, resetMs };
+    return {
+      allowed: true,
+      remaining: this.maxInvocations - this.invocations.length,
+      resetMs
+    };
   }
   reset() {
     this.invocations = [];
@@ -1359,11 +1495,23 @@ function sanitizerOptions(options) {
   return {
     stripHtml: options.stripHtml ?? true,
     stripControlChars: options.stripControlChars ?? true,
-    maxStringLength: positiveInteger(options.maxStringLength ?? 1e4, "maxStringLength"),
-    maxArrayLength: positiveInteger(options.maxArrayLength ?? 100, "maxArrayLength"),
+    maxStringLength: positiveInteger(
+      options.maxStringLength ?? 1e4,
+      "maxStringLength"
+    ),
+    maxArrayLength: positiveInteger(
+      options.maxArrayLength ?? 100,
+      "maxArrayLength"
+    ),
     maxDepth: positiveInteger(options.maxDepth ?? 5, "maxDepth"),
-    maxInputBytes: positiveInteger(options.maxInputBytes ?? 65536, "maxInputBytes"),
-    maxInputNodes: positiveInteger(options.maxInputNodes ?? 1e3, "maxInputNodes")
+    maxInputBytes: positiveInteger(
+      options.maxInputBytes ?? 65536,
+      "maxInputBytes"
+    ),
+    maxInputNodes: positiveInteger(
+      options.maxInputNodes ?? 1e3,
+      "maxInputNodes"
+    )
   };
 }
 function stripHtmlTags(value) {
@@ -1386,33 +1534,51 @@ function stripHtmlTags(value) {
   return parts.join("");
 }
 function ownSet(target, key, value) {
-  Object.defineProperty(target, key, { value, enumerable: true, configurable: true, writable: true });
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  });
 }
 function checkFieldLimits(value, options) {
   if (typeof value === "string") {
-    if (value.length > options.maxStringLength) throw new Error("Input string length limit exceeded");
+    if (value.length > options.maxStringLength)
+      throw new Error("Input string length limit exceeded");
   } else if (Array.isArray(value)) {
-    if (value.length > options.maxArrayLength) throw new Error("Input array length limit exceeded");
+    if (value.length > options.maxArrayLength)
+      throw new Error("Input array length limit exceeded");
     value.forEach((item) => checkFieldLimits(item, options));
-  } else if (value !== null && typeof value === "object") Object.values(value).forEach((item) => checkFieldLimits(item, options));
+  } else if (value !== null && typeof value === "object")
+    Object.values(value).forEach((item) => checkFieldLimits(item, options));
 }
 function sanitizeValue(value, options) {
   if (typeof value === "string") {
     let result = options.stripHtml ? stripHtmlTags(value) : value;
-    if (options.stripControlChars) result = result.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "");
+    if (options.stripControlChars)
+      result = result.replace(
+        /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,
+        ""
+      );
     return result;
   }
-  if (Array.isArray(value)) return value.map((item) => sanitizeValue(item, options));
+  if (Array.isArray(value))
+    return value.map((item) => sanitizeValue(item, options));
   if (value !== null && typeof value === "object") {
     const result = {};
-    for (const [key, item] of Object.entries(value)) ownSet(result, key, sanitizeValue(item, options));
+    for (const [key, item] of Object.entries(value))
+      ownSet(result, key, sanitizeValue(item, options));
     return result;
   }
   return value;
 }
 function sanitizeInput(input, options = {}) {
   const resolved = sanitizerOptions(options);
-  const safe = snapshotInput(input, { maxInputBytes: resolved.maxInputBytes, maxInputNodes: resolved.maxInputNodes, maxInputDepth: resolved.maxDepth });
+  const safe = snapshotInput(input, {
+    maxInputBytes: resolved.maxInputBytes,
+    maxInputNodes: resolved.maxInputNodes,
+    maxInputDepth: resolved.maxDepth
+  });
   checkFieldLimits(safe, resolved);
   return sanitizeValue(safe, resolved);
 }
@@ -1421,19 +1587,25 @@ function redact(value) {
   if (Array.isArray(value)) return value.map(redact);
   if (value !== null && typeof value === "object") {
     const result = {};
-    for (const [key, item] of Object.entries(value)) ownSet(result, key, sensitiveKey.test(key) ? "[REDACTED]" : redact(item));
+    for (const [key, item] of Object.entries(value))
+      ownSet(result, key, sensitiveKey.test(key) ? "[REDACTED]" : redact(item));
     return result;
   }
   return value;
 }
 function withSecurity(tool, config) {
-  if (config.audit && typeof config.onAudit !== "function") throw new Error("Audit requires an explicit onAudit sink");
+  if (config.audit && typeof config.onAudit !== "function")
+    throw new Error("Audit requires an explicit onAudit sink");
   const limiter = config.rateLimit ? new RateLimiter(config.rateLimit) : void 0;
   const validator = compileSchema(tool.inputSchema);
   const suppliedPatterns = config.blockedPatterns ?? [];
-  if (!Array.isArray(suppliedPatterns) || suppliedPatterns.length > 32) throw new Error("Blocked pattern count limit is 32");
+  if (!Array.isArray(suppliedPatterns) || suppliedPatterns.length > 32)
+    throw new Error("Blocked pattern count limit is 32");
   const patterns = Array.from(suppliedPatterns, (pattern) => {
-    if (typeof pattern !== "string" || pattern.length === 0 || pattern.length > 256) throw new Error("Blocked patterns must be nonempty literal strings of at most 256 characters");
+    if (typeof pattern !== "string" || pattern.length === 0 || pattern.length > 256)
+      throw new Error(
+        "Blocked patterns must be nonempty literal strings of at most 256 characters"
+      );
     return pattern.toLowerCase();
   });
   const fields = [...config.auditInputFields ?? []];
@@ -1459,13 +1631,26 @@ function withSecurity(tool, config) {
     });
   }
   const admit = async (input, context) => {
-    if (admitted.has(context)) throw new Error("Execution context already admitted");
-    const record = { auditInput: {}, started: false, complete: false, start: Date.now(), sanitized: false, onAbort: () => {
-    } };
+    if (admitted.has(context))
+      throw new Error("Execution context already admitted");
+    const record = {
+      auditInput: {},
+      started: false,
+      complete: false,
+      start: Date.now(),
+      sanitized: false,
+      onAbort: () => {
+      }
+    };
     admitted.set(context, record);
     record.onAbort = () => {
       try {
-        emit(record, context, record.started ? "failed" : "rejected", "aborted");
+        emit(
+          record,
+          context,
+          record.started ? "failed" : "rejected",
+          "aborted"
+        );
       } catch (error) {
         record.auditError = error;
       }
@@ -1478,27 +1663,57 @@ function withSecurity(tool, config) {
         errorCode = "rate_limit";
         throw new Error(limiter.message);
       }
-      const original = snapshotInput(input, sanitize ? { maxInputBytes: sanitize.maxInputBytes, maxInputNodes: sanitize.maxInputNodes, maxInputDepth: sanitize.maxDepth } : void 0);
-      if (!validator(original).valid) throw new Error("Input does not satisfy tool schema");
+      const original = snapshotInput(
+        input,
+        sanitize ? {
+          maxInputBytes: sanitize.maxInputBytes,
+          maxInputNodes: sanitize.maxInputNodes,
+          maxInputDepth: sanitize.maxDepth
+        } : void 0
+      );
+      if (!validator(original).valid)
+        throw new Error("Input does not satisfy tool schema");
       const processed = sanitize ? sanitizeInput(original, sanitize) : original;
       record.sanitized = !!sanitize;
-      if (!validator(processed).valid) throw new Error("Sanitized input does not satisfy tool schema");
+      if (!validator(processed).valid)
+        throw new Error("Sanitized input does not satisfy tool schema");
       for (const field of fields) {
-        if (Object.prototype.hasOwnProperty.call(processed, field)) ownSet(record.auditInput, field, sensitiveKey.test(field) ? "[REDACTED]" : redact(processed[field]));
+        if (Object.prototype.hasOwnProperty.call(processed, field))
+          ownSet(
+            record.auditInput,
+            field,
+            sensitiveKey.test(field) ? "[REDACTED]" : redact(processed[field])
+          );
       }
       errorCode = "policy_blocked";
       if (patterns.length) {
         const rawText = JSON.stringify(original).toLowerCase();
         const processedText = JSON.stringify(processed).toLowerCase();
-        if (patterns.some((pattern) => rawText.includes(pattern) || processedText.includes(pattern))) throw new Error("Input blocked by security policy");
+        if (patterns.some(
+          (pattern) => rawText.includes(pattern) || processedText.includes(pattern)
+        ))
+          throw new Error("Input blocked by security policy");
       }
       errorCode = "admission_rejected";
       await tool.admit?.(processed, context);
       context.signal.throwIfAborted();
-      record.input = snapshotInput(processed, sanitize ? { maxInputBytes: sanitize.maxInputBytes, maxInputNodes: sanitize.maxInputNodes, maxInputDepth: sanitize.maxDepth } : void 0);
-      if (!validator(record.input).valid) throw new Error("Admitted input does not satisfy tool schema");
+      record.input = snapshotInput(
+        processed,
+        sanitize ? {
+          maxInputBytes: sanitize.maxInputBytes,
+          maxInputNodes: sanitize.maxInputNodes,
+          maxInputDepth: sanitize.maxDepth
+        } : void 0
+      );
+      if (!validator(record.input).valid)
+        throw new Error("Admitted input does not satisfy tool schema");
     } catch (error) {
-      emit(record, context, "rejected", context.signal.aborted ? "aborted" : errorCode);
+      emit(
+        record,
+        context,
+        "rejected",
+        context.signal.aborted ? "aborted" : errorCode
+      );
       throw error;
     }
   };
@@ -1507,9 +1722,21 @@ function withSecurity(tool, config) {
     admit,
     onExecutionRejected: (context, error) => {
       if (!completed.has(context)) {
-        const record = admitted.get(context) ?? { auditInput: {}, started: false, complete: false, start: Date.now(), sanitized: false, onAbort: () => {
-        } };
-        emit(record, context, record.started ? "failed" : "rejected", "admission_rejected");
+        const record = admitted.get(context) ?? {
+          auditInput: {},
+          started: false,
+          complete: false,
+          start: Date.now(),
+          sanitized: false,
+          onAbort: () => {
+          }
+        };
+        emit(
+          record,
+          context,
+          record.started ? "failed" : "rejected",
+          "admission_rejected"
+        );
       }
       tool.onExecutionRejected?.(context, error);
     },
@@ -1531,22 +1758,38 @@ function withSecurity(tool, config) {
         emit(record, context, "succeeded");
         return output;
       } catch (error) {
-        emit(record, context, "failed", context.signal.aborted ? "aborted" : "handler_error");
+        emit(
+          record,
+          context,
+          "failed",
+          context.signal.aborted ? "aborted" : "handler_error"
+        );
         throw error;
       }
     }
   };
 }
 function withConfirmation(tool, reason, provider) {
+  const validate2 = compileSchema(tool.inputSchema);
   return {
     ...tool,
-    annotations: { ...tool.annotations, destructiveHint: true, confirmationHint: true },
+    annotations: {
+      ...tool.annotations,
+      destructiveHint: true,
+      confirmationHint: true
+    },
     handler: async (input, context) => {
       context?.signal.throwIfAborted();
-      if (typeof provider !== "function") throw new Error("Explicit confirmation provider required");
-      if (await provider(reason) !== true) throw new Error("User declined confirmation for destructive action");
+      if (typeof provider !== "function")
+        throw new Error("Explicit confirmation provider required");
+      const reviewedInput = snapshotInput(input);
+      freezeInput(reviewedInput);
+      if (!validate2(reviewedInput).valid)
+        throw new Error("Input does not satisfy tool schema");
+      if (await provider(reason) !== true)
+        throw new Error("User declined confirmation for destructive action");
       context?.signal.throwIfAborted();
-      return tool.handler(input, context);
+      return tool.handler(reviewedInput, context);
     }
   };
 }

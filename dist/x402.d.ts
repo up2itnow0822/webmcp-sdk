@@ -1,11 +1,11 @@
-import { b as WebMCPToolDefinition } from './types-RmhugU8s.js';
+import { h as WebMCPToolDefinition } from './types-CFF4VVYT.js';
 
 /** Strict x402 v2 exact EVM transport. Applications provide noncustodial wallet
  * authorization and independent chain verification; this SDK never holds keys.
  * https://github.com/x402-foundation/x402/blob/main/specs/x402-specification-v2.md */
 
 interface X402Requirements {
-    scheme: 'exact';
+    scheme: "exact";
     network: string;
     amount: string;
     asset: string;
@@ -20,10 +20,10 @@ interface X402PaymentDetails {
     /** Atomic token units, never USD or a human token decimal. */
     readonly maxAmountRequired: string;
     readonly amountAtomic: string;
-    readonly amountUnit: 'atomic';
+    readonly amountUnit: "atomic";
     readonly asset: string;
     readonly resource: string;
-    readonly scheme: 'exact';
+    readonly scheme: "exact";
     readonly description?: string;
     readonly mimeType?: string;
     readonly extra?: Record<string, unknown>;
@@ -57,7 +57,7 @@ interface X402OperationContext {
     readonly signal: AbortSignal;
 }
 interface X402WalletAdapter {
-    protocol: 'x402-v2-exact';
+    protocol: "x402-v2-exact";
     /** Read the live external wallet; do not cache disconnected or switched state. */
     getWalletContext(context: X402OperationContext): Promise<X402WalletContext>;
     /** Request wallet authorization only. Do not broadcast from this callback. */
@@ -79,7 +79,7 @@ interface X402Settlement {
     errorReason?: string;
 }
 type X402Verification = {
-    status: 'verified';
+    status: "verified";
     transaction: string;
     network: string;
     asset: string;
@@ -88,15 +88,15 @@ type X402Verification = {
     resource: string;
     payer: string;
 } | {
-    status: 'pending' | 'failed';
+    status: "pending" | "failed";
 };
 interface X402PaymentResult {
     success: boolean;
-    status: 'verified' | 'pending' | 'failed';
+    status: "verified" | "pending" | "failed";
     txHash?: string;
     /** Atomic token units. */
     amountPaid?: string;
-    amountUnit?: 'atomic';
+    amountUnit?: "atomic";
     network?: string;
     responseBody?: unknown;
     error?: string;
@@ -127,11 +127,11 @@ interface X402Config {
     timeoutMs?: number;
 }
 declare class X402PaymentError extends Error {
-    readonly status: 'pending' | 'failed';
+    readonly status: "pending" | "failed";
     readonly txHash?: string | undefined;
     readonly paymentDetails?: X402PaymentDetails | undefined;
     readonly success = false;
-    constructor(message: string, status?: 'pending' | 'failed', txHash?: string | undefined, paymentDetails?: X402PaymentDetails | undefined);
+    constructor(message: string, status?: "pending" | "failed", txHash?: string | undefined, paymentDetails?: X402PaymentDetails | undefined);
 }
 /** Current PAYMENT-REQUIRED Base64 JSON, one exact EVM offer; legacy and
  * ambiguous offers reject rather than inventing networks, units or resources. */

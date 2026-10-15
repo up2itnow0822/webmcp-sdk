@@ -1,7 +1,7 @@
 import * as react from 'react';
 import { ReactNode } from 'react';
-import { WebMCPKit } from './index.js';
-import { W as WebMCPKitConfig, T as ToolInvocationEvent, a as ToolResult, b as WebMCPToolDefinition } from './types-RmhugU8s.js';
+import { W as WebMCPKit } from './core-CgvfhbwQ.js';
+import { W as WebMCPKitConfig, f as ToolInvocationEvent, g as ToolResult, h as WebMCPToolDefinition } from './types-CFF4VVYT.js';
 
 interface KitScope {
     kit: WebMCPKit;

@@ -1,5 +1,5 @@
 /** SDK types mapped to the October 2026 document.modelContext registration surface. */
-type JSONSchemaType = 'object' | 'string' | 'number' | 'boolean' | 'array' | 'integer' | 'null';
+type JSONSchemaType = "object" | "string" | "number" | "boolean" | "array" | "integer" | "null";
 interface JSONSchema {
     type?: JSONSchemaType | JSONSchemaType[];
     properties?: Record<string, JSONSchemaProperty | boolean>;
@@ -113,7 +113,7 @@ interface WebMCPKitConfig {
     maxInputNodes?: number;
     maxInputDepth?: number;
     confirmationProvider?: ConfirmationProvider;
-    browserAdapter?: 'modern' | 'legacy' | 'none';
+    browserAdapter?: "modern" | "legacy" | "none";
 }
 interface ToolBuilder<TInput = Record<string, unknown>, TOutput = unknown> {
     description(desc: string): ToolBuilder<TInput, TOutput>;
@@ -123,4 +123,4 @@ interface ToolBuilder<TInput = Record<string, unknown>, TOutput = unknown> {
     handle(handler: (input: TInput, context?: ToolExecutionContext) => Promise<TOutput> | TOutput): WebMCPToolDefinition<TInput, TOutput>;
 }
 
-export type { ConfirmationProvider as C, InvokeOptions as I, JSONSchema as J, LegacyModelContext as L, ModelContext as M, RegisterToolOptions as R, ToolInvocationEvent as T, WebMCPKitConfig as W, ToolResult as a, WebMCPToolDefinition as b, ModelContextTool as c, ToolExecutionContext as d, ToolAnnotations as e, ToolBuilder as f, JSONSchemaProperty as g };
+export type { ConfirmationProvider as C, InvokeOptions as I, JSONSchema as J, LegacyModelContext as L, ModelContext as M, RegisterToolOptions as R, ToolExecutionContext as T, WebMCPKitConfig as W, JSONSchemaProperty as a, JSONSchemaType as b, ModelContextTool as c, ToolAnnotations as d, ToolBuilder as e, ToolInvocationEvent as f, ToolResult as g, WebMCPToolDefinition as h };

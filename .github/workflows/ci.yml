@@ -1,28 +1,60 @@
-name: CI
-
+name: Release verification
 on:
   push:
-    branches: [main]
+    branches: [main, fix/secure-release]
   pull_request:
     branches: [main]
-
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run verify:release
+      - name: Check tracked source stability
+        run: git diff --exit-code -- . ':!dist'
+  python-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build isolated Python wheel and import outside source
+        run: |
+          python3 -m venv "$RUNNER_TEMP/webmcp-python"
+          "$RUNNER_TEMP/webmcp-python/bin/python" -m pip install setuptools==84.0.0 wheel==0.48.0
+          "$RUNNER_TEMP/webmcp-python/bin/python" -m pip wheel --no-deps --no-build-isolation ./python --wheel-dir "$RUNNER_TEMP/wheels"
+          "$RUNNER_TEMP/webmcp-python/bin/python" -m pip install --no-deps "$RUNNER_TEMP"/wheels/webmcp_sdk_discovery-0.6.0-*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/webmcp-python/bin/python" -c "from webmcp_sdk.middleware import WebMCPAutoSetupMiddleware; print(WebMCPAutoSetupMiddleware.__name__)"
   build:
+    name: build
+    needs: [release, python-package]
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Test
-        run: npm test
-      - name: Package subpath smoke
-        run: npm run smoke:package
+      - name: Require every release gate
+        env:
+          RELEASE_RESULT: ${{ needs.release.result }}
+          PYTHON_RESULT: ${{ needs.python-package.result }}
+        run: |
+          test "$RELEASE_RESULT" = success
+          test "$PYTHON_RESULT" = success

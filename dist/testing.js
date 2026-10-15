@@ -1104,10 +1104,17 @@ var Validator = class {
 };
 
 // src/input.ts
-var DEFAULT_INPUT_LIMITS = Object.freeze({ maxInputBytes: 65536, maxInputNodes: 1e3, maxInputDepth: 10 });
+var DEFAULT_INPUT_LIMITS = Object.freeze({
+  maxInputBytes: 65536,
+  maxInputNodes: 1e3,
+  maxInputDepth: 10
+});
 var forbidden = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
 function validateLimit(name, value, allowZero = false) {
-  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1)) throw new Error(`WebMCP Kit: ${name} must be a ${allowZero ? "nonnegative" : "positive"} safe integer`);
+  if (!Number.isSafeInteger(value) || value < (allowZero ? 0 : 1))
+    throw new Error(
+      `WebMCP Kit: ${name} must be a ${allowZero ? "nonnegative" : "positive"} safe integer`
+    );
 }
 function snapshotInput(input, limits = {}) {
   const budget = {
@@ -1115,19 +1122,22 @@ function snapshotInput(input, limits = {}) {
     maxInputNodes: limits.maxInputNodes ?? DEFAULT_INPUT_LIMITS.maxInputNodes,
     maxInputDepth: limits.maxInputDepth ?? DEFAULT_INPUT_LIMITS.maxInputDepth
   };
-  for (const [name, value] of Object.entries(budget)) validateLimit(name, value);
+  for (const [name, value] of Object.entries(budget))
+    validateLimit(name, value);
   let nodes = 0;
   let bytes = 0;
   const ancestors = /* @__PURE__ */ new Set();
   const charge = (amount) => {
     bytes += amount;
-    if (bytes > budget.maxInputBytes) throw new Error("Input exceeds maxInputBytes limit");
+    if (bytes > budget.maxInputBytes)
+      throw new Error("Input exceeds maxInputBytes limit");
   };
   const stringBytes = (value) => {
     charge(2);
     for (let i = 0; i < value.length; i++) {
       const n = value.charCodeAt(i);
-      if (n === 34 || n === 92 || n === 8 || n === 9 || n === 10 || n === 12 || n === 13) charge(2);
+      if (n === 34 || n === 92 || n === 8 || n === 9 || n === 10 || n === 12 || n === 13)
+        charge(2);
       else if (n < 32) charge(6);
       else if (n < 128) charge(1);
       else if (n < 2048) charge(2);
@@ -1139,8 +1149,10 @@ function snapshotInput(input, limits = {}) {
     }
   };
   const clone = (value, depth) => {
-    if (++nodes > budget.maxInputNodes) throw new Error("Input exceeds maxInputNodes limit");
-    if (depth > budget.maxInputDepth) throw new Error("Input exceeds maxInputDepth limit");
+    if (++nodes > budget.maxInputNodes)
+      throw new Error("Input exceeds maxInputNodes limit");
+    if (depth > budget.maxInputDepth)
+      throw new Error("Input exceeds maxInputDepth limit");
     if (value === null) {
       charge(4);
       return null;
@@ -1157,12 +1169,16 @@ function snapshotInput(input, limits = {}) {
       charge(String(value).length);
       return value;
     }
-    if (typeof value !== "object") throw new Error("Input must contain finite JSON-compatible data");
+    if (typeof value !== "object")
+      throw new Error("Input must contain finite JSON-compatible data");
     const object = value;
     const array = Array.isArray(object);
     const proto = Object.getPrototypeOf(object);
-    if (array ? proto !== Array.prototype : proto !== Object.prototype && proto !== null) throw new Error("Input contains an arbitrary prototype");
-    for (const key of forbidden) if (Object.prototype.hasOwnProperty.call(object, key)) throw new Error(`Input contains forbidden key: ${key}`);
+    if (array ? proto !== Array.prototype : proto !== Object.prototype && proto !== null)
+      throw new Error("Input contains an arbitrary prototype");
+    for (const key of forbidden)
+      if (Object.prototype.hasOwnProperty.call(object, key))
+        throw new Error(`Input contains forbidden key: ${key}`);
     if (ancestors.has(object)) throw new Error("Input contains a cycle");
     ancestors.add(object);
     charge(2);
@@ -1170,12 +1186,15 @@ function snapshotInput(input, limits = {}) {
     let count = 0;
     for (const key in object) {
       if (!Object.prototype.hasOwnProperty.call(object, key)) continue;
-      if (forbidden.has(key)) throw new Error(`Input contains forbidden key: ${key}`);
+      if (forbidden.has(key))
+        throw new Error(`Input contains forbidden key: ${key}`);
       count++;
-      if (nodes >= budget.maxInputNodes) throw new Error("Input exceeds maxInputNodes limit");
+      if (nodes >= budget.maxInputNodes)
+        throw new Error("Input exceeds maxInputNodes limit");
       const desc = Object.getOwnPropertyDescriptor(object, key);
       if (!("value" in desc)) throw new Error("Input contains an accessor");
-      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= object.length)) throw new Error("Input array contains non-index fields");
+      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= object.length))
+        throw new Error("Input array contains non-index fields");
       if (count > 1) charge(1);
       if (!array) {
         stringBytes(key);
@@ -1183,12 +1202,15 @@ function snapshotInput(input, limits = {}) {
       }
       result[key] = clone(desc.value, depth + 1);
     }
-    if (array && count !== object.length) throw new Error("Input arrays must not contain holes");
-    if (Object.getOwnPropertySymbols(object).length) throw new Error("Input contains symbol fields");
+    if (array && count !== object.length)
+      throw new Error("Input arrays must not contain holes");
+    if (Object.getOwnPropertySymbols(object).length)
+      throw new Error("Input contains symbol fields");
     ancestors.delete(object);
     return result;
   };
-  if (typeof input !== "object" || input === null || Array.isArray(input)) throw new Error("Input must be an object");
+  if (typeof input !== "object" || input === null || Array.isArray(input))
+    throw new Error("Input must be an object");
   return clone(input, 0);
 }
 
@@ -1196,61 +1218,106 @@ function snapshotInput(input, limits = {}) {
 var schemaRef = { $ref: "#" };
 var schemaMap = { type: "object", additionalProperties: schemaRef };
 var nonnegativeInteger = { type: "integer", minimum: 0 };
-var strings = { type: "array", items: { type: "string" }, uniqueItems: true };
+var strings = {
+  type: "array",
+  items: { type: "string" },
+  uniqueItems: true
+};
 var schemaArray = { type: "array", minItems: 1, items: schemaRef };
 var metaSchema = {
-  anyOf: [{ type: "boolean" }, { type: "object", properties: {
-    type: { anyOf: [{ enum: ["object", "array", "string", "number", "integer", "boolean", "null"] }, { type: "array", minItems: 1, uniqueItems: true, items: { enum: ["object", "array", "string", "number", "integer", "boolean", "null"] } }] },
-    properties: schemaMap,
-    patternProperties: schemaMap,
-    $defs: schemaMap,
-    definitions: schemaMap,
-    required: strings,
-    enum: { type: "array", minItems: 1, uniqueItems: true },
-    $ref: { type: "string" },
-    $id: { type: "string" },
-    $schema: { type: "string" },
-    $anchor: { type: "string" },
-    additionalProperties: schemaRef,
-    unevaluatedProperties: schemaRef,
-    not: schemaRef,
-    if: schemaRef,
-    then: schemaRef,
-    else: schemaRef,
-    anyOf: schemaArray,
-    oneOf: schemaArray,
-    allOf: schemaArray,
-    items: { anyOf: [schemaRef, { type: "array", items: schemaRef }] },
-    prefixItems: schemaArray,
-    additionalItems: schemaRef,
-    unevaluatedItems: schemaRef,
-    contains: schemaRef,
-    propertyNames: schemaRef,
-    minItems: nonnegativeInteger,
-    maxItems: nonnegativeInteger,
-    minContains: nonnegativeInteger,
-    maxContains: nonnegativeInteger,
-    minProperties: nonnegativeInteger,
-    maxProperties: nonnegativeInteger,
-    minLength: nonnegativeInteger,
-    maxLength: nonnegativeInteger,
-    uniqueItems: { type: "boolean" },
-    minimum: { type: "number" },
-    maximum: { type: "number" },
-    multipleOf: { type: "number", exclusiveMinimum: 0 },
-    exclusiveMinimum: { type: ["number", "boolean"] },
-    exclusiveMaximum: { type: ["number", "boolean"] },
-    pattern: { type: "string" },
-    format: { type: "string" },
-    dependentRequired: { type: "object", additionalProperties: strings },
-    dependentSchemas: schemaMap,
-    dependencies: { type: "object", additionalProperties: { anyOf: [schemaRef, strings] } }
-  } }]
+  anyOf: [
+    { type: "boolean" },
+    {
+      type: "object",
+      properties: {
+        type: {
+          anyOf: [
+            {
+              enum: [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            },
+            {
+              type: "array",
+              minItems: 1,
+              uniqueItems: true,
+              items: {
+                enum: [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "integer",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        properties: schemaMap,
+        patternProperties: schemaMap,
+        $defs: schemaMap,
+        definitions: schemaMap,
+        required: strings,
+        enum: { type: "array", minItems: 1, uniqueItems: true },
+        $ref: { type: "string" },
+        $id: { type: "string" },
+        $schema: { type: "string" },
+        $anchor: { type: "string" },
+        additionalProperties: schemaRef,
+        unevaluatedProperties: schemaRef,
+        not: schemaRef,
+        if: schemaRef,
+        then: schemaRef,
+        else: schemaRef,
+        anyOf: schemaArray,
+        oneOf: schemaArray,
+        allOf: schemaArray,
+        items: { anyOf: [schemaRef, { type: "array", items: schemaRef }] },
+        prefixItems: schemaArray,
+        additionalItems: schemaRef,
+        unevaluatedItems: schemaRef,
+        contains: schemaRef,
+        propertyNames: schemaRef,
+        minItems: nonnegativeInteger,
+        maxItems: nonnegativeInteger,
+        minContains: nonnegativeInteger,
+        maxContains: nonnegativeInteger,
+        minProperties: nonnegativeInteger,
+        maxProperties: nonnegativeInteger,
+        minLength: nonnegativeInteger,
+        maxLength: nonnegativeInteger,
+        uniqueItems: { type: "boolean" },
+        minimum: { type: "number" },
+        maximum: { type: "number" },
+        multipleOf: { type: "number", exclusiveMinimum: 0 },
+        exclusiveMinimum: { type: ["number", "boolean"] },
+        exclusiveMaximum: { type: ["number", "boolean"] },
+        pattern: { type: "string" },
+        format: { type: "string" },
+        dependentRequired: { type: "object", additionalProperties: strings },
+        dependentSchemas: schemaMap,
+        dependencies: {
+          type: "object",
+          additionalProperties: { anyOf: [schemaRef, strings] }
+        }
+      }
+    }
+  ]
 };
 var metaValidator = new Validator(metaSchema, "2020-12");
 function checkSafePattern(pattern) {
   const unsupported = () => {
-    throw new Error("Unsupported JSON Schema pattern: use the bounded linear regular-expression subset");
+    throw new Error(
+      "Unsupported JSON Schema pattern: use the bounded linear regular-expression subset"
+    );
   };
   if (pattern.length > 512) unsupported();
   let i = 0;
@@ -1313,37 +1380,83 @@ function checkSafePattern(pattern) {
 function checkSubschemas(schema, draft) {
   if (!schema || typeof schema !== "object") return;
   const obj = schema;
-  for (const keyword of ["$dynamicRef", "$dynamicAnchor", "__absolute_ref__", "__absolute_recursive_ref__", "__absolute_uri__"]) {
-    if (Object.prototype.hasOwnProperty.call(obj, keyword)) throw new Error(`Unsupported or internal JSON Schema keyword: ${keyword}`);
+  for (const keyword of [
+    "$dynamicRef",
+    "$dynamicAnchor",
+    "__absolute_ref__",
+    "__absolute_recursive_ref__",
+    "__absolute_uri__"
+  ]) {
+    if (Object.prototype.hasOwnProperty.call(obj, keyword))
+      throw new Error(
+        `Unsupported or internal JSON Schema keyword: ${keyword}`
+      );
   }
   for (const keyword of ["exclusiveMinimum", "exclusiveMaximum"]) {
-    if (obj[keyword] !== void 0 && typeof obj[keyword] !== (draft === "4" ? "boolean" : "number")) throw new Error(`Invalid JSON Schema ${keyword} for draft ${draft}`);
+    if (obj[keyword] !== void 0 && typeof obj[keyword] !== (draft === "4" ? "boolean" : "number"))
+      throw new Error(`Invalid JSON Schema ${keyword} for draft ${draft}`);
   }
-  if (draft === "2020-12" && Array.isArray(obj.items)) throw new Error("Invalid JSON Schema: 2020-12 uses prefixItems for tuple schemas");
-  if (typeof obj.format === "string" && ["url", "uri", "uri-reference"].includes(obj.format)) throw new Error(`Unsupported JSON Schema format with complex upstream regular expressions: ${obj.format}`);
+  if (draft === "2020-12" && Array.isArray(obj.items))
+    throw new Error(
+      "Invalid JSON Schema: 2020-12 uses prefixItems for tuple schemas"
+    );
+  if (typeof obj.format === "string" && ["url", "uri", "uri-reference"].includes(obj.format))
+    throw new Error(
+      `Unsupported JSON Schema format with complex upstream regular expressions: ${obj.format}`
+    );
   if (typeof obj.pattern === "string") checkSafePattern(obj.pattern);
-  for (const keyword of ["properties", "patternProperties", "$defs", "definitions", "dependentSchemas", "dependencies"]) {
+  for (const keyword of [
+    "properties",
+    "patternProperties",
+    "$defs",
+    "definitions",
+    "dependentSchemas",
+    "dependencies"
+  ]) {
     const map = obj[keyword];
-    if (map && typeof map === "object") for (const [key, value] of Object.entries(map)) {
-      if (keyword === "patternProperties") checkSafePattern(key);
-      checkSubschemas(value, draft);
-    }
+    if (map && typeof map === "object")
+      for (const [key, value] of Object.entries(map)) {
+        if (keyword === "patternProperties") checkSafePattern(key);
+        checkSubschemas(value, draft);
+      }
   }
   for (const keyword of ["anyOf", "oneOf", "allOf", "prefixItems"]) {
     const values = obj[keyword];
-    if (Array.isArray(values)) values.forEach((value) => checkSubschemas(value, draft));
+    if (Array.isArray(values))
+      values.forEach((value) => checkSubschemas(value, draft));
   }
-  for (const keyword of ["not", "if", "then", "else", "items", "additionalItems", "additionalProperties", "unevaluatedItems", "unevaluatedProperties", "contains", "propertyNames"]) {
+  for (const keyword of [
+    "not",
+    "if",
+    "then",
+    "else",
+    "items",
+    "additionalItems",
+    "additionalProperties",
+    "unevaluatedItems",
+    "unevaluatedProperties",
+    "contains",
+    "propertyNames"
+  ]) {
     const value = obj[keyword];
-    if (Array.isArray(value)) value.forEach((item) => checkSubschemas(item, draft));
+    if (Array.isArray(value))
+      value.forEach((item) => checkSubschemas(item, draft));
     else checkSubschemas(value, draft);
   }
 }
 function compileSchema(schema) {
-  const copied = snapshotInput(schema, { maxInputBytes: 262144, maxInputNodes: 1e4, maxInputDepth: 64 });
+  const copied = snapshotInput(schema, {
+    maxInputBytes: 262144,
+    maxInputNodes: 1e4,
+    maxInputDepth: 64
+  });
   const shape = metaValidator.validate(copied);
-  if (!shape.valid) throw new Error(`Invalid JSON Schema: ${shape.errors.map((error) => error.error).join("; ")}`);
-  if (copied.type !== "object") throw new Error('WebMCP Kit: inputSchema must have type "object"');
+  if (!shape.valid)
+    throw new Error(
+      `Invalid JSON Schema: ${shape.errors.map((error) => error.error).join("; ")}`
+    );
+  if (copied.type !== "object")
+    throw new Error('WebMCP Kit: inputSchema must have type "object"');
   const draftByUri = {
     "http://json-schema.org/draft-04/schema#": "4",
     "http://json-schema.org/draft-07/schema#": "7",
@@ -1351,13 +1464,19 @@ function compileSchema(schema) {
     "https://json-schema.org/draft/2020-12/schema": "2020-12"
   };
   const uri2 = copied.$schema;
-  if (uri2 !== void 0 && (typeof uri2 !== "string" || !draftByUri[uri2])) throw new Error("Unsupported JSON Schema draft");
+  if (uri2 !== void 0 && (typeof uri2 !== "string" || !draftByUri[uri2]))
+    throw new Error("Unsupported JSON Schema draft");
   const draft = uri2 ? draftByUri[uri2] : "2020-12";
   checkSubschemas(copied, draft);
   const validator = new Validator(copied, draft);
   return (input) => {
     const result = validator.validate(input);
-    return { valid: result.valid, errors: result.errors.map((error) => `${error.instanceLocation || "/"}: ${error.error}${error.keyword === "enum" ? " (must be one of enum values)" : ""}`) };
+    return {
+      valid: result.valid,
+      errors: result.errors.map(
+        (error) => `${error.instanceLocation || "/"}: ${error.error}${error.keyword === "enum" ? " (must be one of enum values)" : ""}`
+      )
+    };
   };
 }
 
@@ -1367,11 +1486,16 @@ function createMockContext() {
   const context = {
     async registerTool(tool, options) {
       if (options?.signal?.aborted) throw new Error("Registration aborted");
-      if (tools.has(tool.name)) throw new Error(`Tool "${tool.name}" already registered`);
+      if (tools.has(tool.name))
+        throw new Error(`Tool "${tool.name}" already registered`);
       tools.set(tool.name, tool);
-      options?.signal?.addEventListener("abort", () => {
-        if (tools.get(tool.name) === tool) tools.delete(tool.name);
-      }, { once: true });
+      options?.signal?.addEventListener(
+        "abort",
+        () => {
+          if (tools.get(tool.name) === tool) tools.delete(tool.name);
+        },
+        { once: true }
+      );
     }
   };
   return {
@@ -1387,48 +1511,83 @@ function createMockContext() {
 }
 function createLegacyMockContext() {
   const tools = /* @__PURE__ */ new Map();
-  const context = { registerTool: (tool) => {
-    tools.set(tool.name, tool);
-  }, unregisterTool: (name) => {
-    tools.delete(name);
-  }, getRegisteredTools: () => [...tools.values()] };
-  return { context, getTools: () => [...tools.values()], invoke: async (name, input) => {
-    const tool = tools.get(name);
-    if (!tool) throw new Error(`Tool "${name}" not registered`);
-    return tool.handler(input);
-  } };
+  const context = {
+    registerTool: (tool) => {
+      tools.set(tool.name, tool);
+    },
+    unregisterTool: (name) => {
+      tools.delete(name);
+    },
+    getRegisteredTools: () => [...tools.values()]
+  };
+  return {
+    context,
+    getTools: () => [...tools.values()],
+    invoke: async (name, input) => {
+      const tool = tools.get(name);
+      if (!tool) throw new Error(`Tool "${name}" not registered`);
+      return tool.handler(input);
+    }
+  };
 }
 function installMockContext() {
   const mock = createMockContext();
-  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const documentDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "document"
+  );
   const originalDocument = globalThis.document;
   const modelDescriptor = originalDocument ? Object.getOwnPropertyDescriptor(originalDocument, "modelContext") : void 0;
-  if (!originalDocument) Object.defineProperty(globalThis, "document", { configurable: true, writable: true, value: {} });
-  Object.defineProperty(globalThis.document, "modelContext", { configurable: true, writable: true, value: mock.context });
-  return { ...mock, cleanup: () => {
-    if (originalDocument) {
-      if (modelDescriptor) Object.defineProperty(originalDocument, "modelContext", modelDescriptor);
-      else delete originalDocument.modelContext;
-    } else if (documentDescriptor) Object.defineProperty(globalThis, "document", documentDescriptor);
-    else delete globalThis.document;
-  } };
+  if (!originalDocument)
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      writable: true,
+      value: {}
+    });
+  Object.defineProperty(globalThis.document, "modelContext", {
+    configurable: true,
+    writable: true,
+    value: mock.context
+  });
+  return {
+    ...mock,
+    cleanup: () => {
+      if (originalDocument) {
+        if (modelDescriptor)
+          Object.defineProperty(
+            originalDocument,
+            "modelContext",
+            modelDescriptor
+          );
+        else delete originalDocument.modelContext;
+      } else if (documentDescriptor)
+        Object.defineProperty(globalThis, "document", documentDescriptor);
+      else delete globalThis.document;
+    }
+  };
 }
 function validateToolDefinition(tool) {
   const errors = [];
   const warnings = [];
   if (!tool.name) errors.push("Tool name is required");
   if (tool.name && !/^[a-z][a-z0-9_.-]*$/.test(tool.name)) {
-    errors.push("Tool name must be lowercase alphanumeric with hyphens/dots/underscores");
+    errors.push(
+      "Tool name must be lowercase alphanumeric with hyphens/dots/underscores"
+    );
   }
   if (tool.name && tool.name.length > 64) {
     errors.push("Tool name must be 64 characters or fewer");
   }
   if (!tool.description) errors.push("Tool description is required");
   if (tool.description && tool.description.length < 10) {
-    warnings.push("Tool description is very short \u2014 LLMs need clear descriptions to select the right tool");
+    warnings.push(
+      "Tool description is very short \u2014 LLMs need clear descriptions to select the right tool"
+    );
   }
   if (tool.description && tool.description.length > 500) {
-    warnings.push("Tool description is very long \u2014 consider being more concise for token efficiency");
+    warnings.push(
+      "Tool description is very long \u2014 consider being more concise for token efficiency"
+    );
   }
   if (!tool.inputSchema) errors.push("inputSchema is required");
   if (tool.inputSchema && tool.inputSchema.type !== "object") {
@@ -1437,7 +1596,9 @@ function validateToolDefinition(tool) {
   if (tool.inputSchema?.properties) {
     for (const [key, prop] of Object.entries(tool.inputSchema.properties)) {
       if (typeof prop !== "boolean" && !prop.description) {
-        warnings.push(`Property "${key}" has no description \u2014 this helps LLMs fill it correctly`);
+        warnings.push(
+          `Property "${key}" has no description \u2014 this helps LLMs fill it correctly`
+        );
       }
     }
   }
@@ -1445,7 +1606,9 @@ function validateToolDefinition(tool) {
     try {
       compileSchema(tool.inputSchema);
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : "Invalid inputSchema");
+      errors.push(
+        error instanceof Error ? error.message : "Invalid inputSchema"
+      );
     }
   }
   if (!tool.handler) errors.push("handler function is required");
@@ -1463,7 +1626,10 @@ async function testTool(tool, cases) {
     let result;
     try {
       const timeoutPromise = tc.timeoutMs ? new Promise(
-        (_, reject) => setTimeout(() => reject(new Error(`Timeout after ${tc.timeoutMs}ms`)), tc.timeoutMs)
+        (_, reject) => setTimeout(
+          () => reject(new Error(`Timeout after ${tc.timeoutMs}ms`)),
+          tc.timeoutMs
+        )
       ) : null;
       const handlerPromise = tool.handler(tc.input);
       result = timeoutPromise ? await Promise.race([handlerPromise, timeoutPromise]) : await handlerPromise;
@@ -1517,16 +1683,21 @@ function formatTestResults(results) {
     return `${icon} ${r.name} (${duration})${err}`;
   });
   lines.push("");
-  lines.push(`${passed}/${results.length} passed${failed > 0 ? ` (${failed} failed)` : ""}`);
+  lines.push(
+    `${passed}/${results.length} passed${failed > 0 ? ` (${failed} failed)` : ""}`
+  );
   return lines.join("\n");
 }
 function scoreToolQuality(tool) {
   const breakdown = {};
   let nameScore = 0;
   if (tool.name) nameScore += 3;
-  if (tool.name && tool.name.length >= 3 && tool.name.length <= 30) nameScore += 3;
-  if (tool.name && tool.name.includes("_") || tool.name?.includes(".")) nameScore += 2;
-  if (tool.name && !tool.name.includes("tool") && !tool.name.includes("function")) nameScore += 2;
+  if (tool.name && tool.name.length >= 3 && tool.name.length <= 30)
+    nameScore += 3;
+  if (tool.name && tool.name.includes("_") || tool.name?.includes("."))
+    nameScore += 2;
+  if (tool.name && !tool.name.includes("tool") && !tool.name.includes("function"))
+    nameScore += 2;
   breakdown.name = {
     score: nameScore,
     max: 10,
@@ -1536,8 +1707,12 @@ function scoreToolQuality(tool) {
   if (tool.description) descScore += 5;
   if (tool.description && tool.description.length >= 20) descScore += 5;
   if (tool.description && tool.description.length <= 200) descScore += 3;
-  if (tool.description && /\b(returns?|provides?|gets?|searches?|creates?|updates?|deletes?)\b/i.test(tool.description)) descScore += 4;
-  if (tool.description && !tool.description.includes("TODO") && !tool.description.includes("...")) descScore += 3;
+  if (tool.description && /\b(returns?|provides?|gets?|searches?|creates?|updates?|deletes?)\b/i.test(
+    tool.description
+  ))
+    descScore += 4;
+  if (tool.description && !tool.description.includes("TODO") && !tool.description.includes("..."))
+    descScore += 3;
   breakdown.description = {
     score: descScore,
     max: 20,
@@ -1545,9 +1720,13 @@ function scoreToolQuality(tool) {
   };
   let schemaScore = 0;
   if (tool.inputSchema) schemaScore += 5;
-  if (tool.inputSchema?.properties && Object.keys(tool.inputSchema.properties).length > 0) schemaScore += 5;
-  if (tool.inputSchema?.required && tool.inputSchema.required.length > 0) schemaScore += 3;
-  const hasDescriptions = tool.inputSchema?.properties ? Object.values(tool.inputSchema.properties).every((p) => typeof p !== "boolean" && p.description) : false;
+  if (tool.inputSchema?.properties && Object.keys(tool.inputSchema.properties).length > 0)
+    schemaScore += 5;
+  if (tool.inputSchema?.required && tool.inputSchema.required.length > 0)
+    schemaScore += 3;
+  const hasDescriptions = tool.inputSchema?.properties ? Object.values(tool.inputSchema.properties).every(
+    (p) => typeof p !== "boolean" && p.description
+  ) : false;
   if (hasDescriptions) schemaScore += 5;
   if (tool.inputSchema?.properties) {
     const hasConstraints = Object.values(tool.inputSchema.properties).some(
@@ -1562,13 +1741,17 @@ function scoreToolQuality(tool) {
   };
   let annotScore = 0;
   if (tool.annotations) annotScore += 5;
-  if (tool.annotations?.readOnlyHint !== void 0 || tool.annotations?.destructiveHint !== void 0) annotScore += 5;
+  if (tool.annotations?.readOnlyHint !== void 0 || tool.annotations?.destructiveHint !== void 0)
+    annotScore += 5;
   breakdown.annotations = {
     score: annotScore,
     max: 10,
     tip: annotScore < 5 ? "Add annotations like readOnlyHint or destructiveHint to help agents make safer decisions" : void 0
   };
-  const totalScore = Object.values(breakdown).reduce((sum, b) => sum + b.score, 0);
+  const totalScore = Object.values(breakdown).reduce(
+    (sum, b) => sum + b.score,
+    0
+  );
   const maxScore = Object.values(breakdown).reduce((sum, b) => sum + b.max, 0);
   return { score: totalScore, maxScore, breakdown };
 }

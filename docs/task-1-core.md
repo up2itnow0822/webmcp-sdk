@@ -46,3 +46,7 @@ No live native WebMCP browser was exercised by this worker. Fixtures verify API 
 Schemas, hooks, handlers and middleware are developer-controlled code. Deadlines cannot preempt synchronous JavaScript or force an uncooperative promise to stop. Stuck operations intentionally retain capacity. Wrappers must preserve their own underlying-operation quarantine rather than claim quiescence when a timeout race settles. Input budgets bound ordinary accepted snapshots, not arbitrary Proxy traps or allocations already made by callers. Hidden non-dangerous non-enumerable fields are omitted like JSON; hidden forbidden keys reject. Structural schema checks are not a claim that every official metaschema/test suite was executed. No absolute-security or live-funded-wallet claim is made.
 
 Fresh follow-up after coordinator middleware restoration: `npm test` passed **271/271 in 9 files** and `npm run typecheck` passed. This supersedes the transient six discovery failures above; it remains a point-in-time SDK check while coordinator continues restoring additional integration/release checks.
+
+## Shared confirmation snapshot helper
+
+The existing bounded-JSON freeze helper was moved from core.ts into input.ts as exported freezeInput, with core reusing it. This lets security freeze direct confirmation snapshots without importing the core runtime. Fresh SDK tests294/294 and typecheck passed after the move; coordinator owns the final full release gate.

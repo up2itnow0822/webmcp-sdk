@@ -30,8 +30,7 @@ authorizers always run, including public mode.
 Without authorize or explicit public_manifest=True, /mcp, /mcp/tools and
 /mcp/resources return 401. Deliberately public catalogs can opt in using
 public_manifest=True. Every catalog response, denial and unsupported method uses
-Cache-Control: private, no-store. GET and HEAD are supported; other methods get
-405. Configuration requires canonical local absolute paths, printable ASCII header
+Cache-Control: private, no-store. GET and HEAD are supported; other methods get 405. Configuration requires canonical local absolute paths, printable ASCII header
 values of at most 256 characters, and unique capability tokens drawn from tools,
 resources, prompts, sampling, logging.
 

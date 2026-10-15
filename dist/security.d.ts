@@ -1,4 +1,4 @@
-import { T as ToolInvocationEvent, b as WebMCPToolDefinition, C as ConfirmationProvider } from './types-RmhugU8s.js';
+import { f as ToolInvocationEvent, h as WebMCPToolDefinition, C as ConfirmationProvider } from './types-CFF4VVYT.js';
 
 /** Bounded input guards, explicit confirmation, admission limits and redacted audit. */
 
@@ -40,9 +40,9 @@ declare function sanitizeInput(input: Record<string, unknown>, options?: Sanitiz
 interface SecurityAuditEvent extends ToolInvocationEvent {
     sanitized: boolean;
     blocked: boolean;
-    outcome: 'rejected' | 'succeeded' | 'failed';
+    outcome: "rejected" | "succeeded" | "failed";
     /** Stable classification only; raw handler errors and outputs are never logged. */
-    errorCode?: 'rate_limit' | 'input_rejected' | 'policy_blocked' | 'admission_rejected' | 'aborted' | 'handler_error';
+    errorCode?: "rate_limit" | "input_rejected" | "policy_blocked" | "admission_rejected" | "aborted" | "handler_error";
     durationMs: number;
 }
 interface SecurityConfig {

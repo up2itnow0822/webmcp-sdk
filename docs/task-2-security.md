@@ -66,14 +66,14 @@ missing sinks/outcomes and sensitive data in logs. The subset avoided waiting fo
 baseline queue behavior. The full restored implementation subsequently passed
 **50/50** with `npm test -- src/__tests__/security.test.ts`.
 
-| Area | Regressions |
-| --- | --- |
-| Sanitation | Three dangerous keys, arbitrary prototypes/Date, NaN/Infinity/undefined, cycles, getters without execution, string/array/depth/node/byte limits, invalid limits, HTML/control stripping, unmatched angle brackets |
-| Confirmation | Missing provider, false/undefined/string/numeric answers, true approval with reason/context, cancellation during approval |
-| Literal policy | Metacharacters treated literally, case-insensitive denial, catastrophic-style rule never compiled, 9,001-character input, empty/nonstring/oversized/excessive/sparse rules |
-| Rate | Invalid quota/window, expiry/reset, direct denial, admission before core queue, no double charge |
-| Audit | Missing sink, default input omission, recursive redaction, handler success/failure, unsafe input and policy rejection, pre-admission core failures, queue-full/queued cancellation, timeout and late success suppression |
-| Schema | Final sanitized value must satisfy the original schema |
+| Area           | Regressions                                                                                                                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sanitation     | Three dangerous keys, arbitrary prototypes/Date, NaN/Infinity/undefined, cycles, getters without execution, string/array/depth/node/byte limits, invalid limits, HTML/control stripping, unmatched angle brackets        |
+| Confirmation   | Missing provider, false/undefined/string/numeric answers, true approval with reason/context, cancellation during approval                                                                                                |
+| Literal policy | Metacharacters treated literally, case-insensitive denial, catastrophic-style rule never compiled, 9,001-character input, empty/nonstring/oversized/excessive/sparse rules                                               |
+| Rate           | Invalid quota/window, expiry/reset, direct denial, admission before core queue, no double charge                                                                                                                         |
+| Audit          | Missing sink, default input omission, recursive redaction, handler success/failure, unsafe input and policy rejection, pre-admission core failures, queue-full/queued cancellation, timeout and late success suppression |
+| Schema         | Final sanitized value must satisfy the original schema                                                                                                                                                                   |
 
 ## Separately installable Python package
 
@@ -142,3 +142,45 @@ queue/deadline scheduler. A registered confirmation wrapper and the kit's config
 confirmation provider are independent guards. React must retain the same admitted
 wrapper/context through terminal handling and revoke changed authority. Tests use
 harmless deterministic handlers; no real destructive or financial actions occurred.
+
+## Standalone confirmation mutation follow-up (2026-10-15)
+
+Independent recovery review reproduced a direct-wrapper authorization race: a
+caller supplied amount 1, changed its object to amount 100 while the confirmation
+promise was pending, and the handler received 100 after approval. Registered kit
+invocation already used a snapshot; the separately exported helper needed the same
+boundary before requesting approval.
+
+Eight new regressions failed before this repair: top-level/nested/array mutation
+during pending approval, wrong schema type, missing required fields, recursively
+forbidden prototype keys, arbitrary prototypes, nonfinite values, excessive bytes,
+and a getter-bearing input. The mutation case returned amount 100 instead of 1;
+the seven invalid-input cases executed handlers instead of rejecting. The getter
+regression also verifies rejection without invoking the accessor. All handlers
+remain harmless test functions; no destructive action or financial operation ran.
+
+`withConfirmation` now captures its schema validator when created. Each call takes
+a bounded own-data snapshot, recursively freezes it using core's shared exported
+`freezeInput`, and validates it before invoking the provider. It passes that exact
+immutable snapshot to the handler after literal-true approval and the existing
+post-await abort check. Provider reason/context behavior and annotations remain
+compatible. Two explicit integration cases preserve the original admit hook,
+annotations, one rate charge and terminal audits with security either inside or
+outside confirmation.
+
+Fresh commands after the patch:
+
+- Selected new defect tests: **8 failed before repair**, then passed in the full
+  focused security run.
+- `npm test -- src/__tests__/security.test.ts`: **60 passed, 0 failed**.
+- `npm test -- --reporter=json --outputFile=/tmp/security-confirmation-full.json`:
+  **294 passed, 0 failed**.
+- `npm run typecheck`: **exit 0**.
+- Scoped `git diff --check`: **clean**.
+
+The core owner moved the already-existing recursive freeze helper into input.ts;
+this worker edited security.ts, security tests and this report only. The provider
+still receives the configured reason under the existing API; applications remain
+responsible for presenting an accurate review. The SDK guarantees the handler
+receives its validated immutable pre-approval snapshot rather than later mutations
+of the caller's object.

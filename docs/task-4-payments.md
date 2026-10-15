@@ -15,7 +15,7 @@ Only GET without a body is replayed, to canonical HTTPS URLs on an explicit orig
 ```typescript
 const config: X402Config = {
   adapter: {
-    protocol: 'x402-v2-exact',
+    protocol: "x402-v2-exact",
     getWalletContext: async ({ signal }) => walletBridge.getContext(signal),
     authorize: async (details, { signal }) => {
       // Reviewed EIP-3009 authorization through a noncustodial external wallet.
@@ -24,16 +24,18 @@ const config: X402Config = {
       return walletBridge.authorizeExactPayment(details, signal);
     },
   },
-  verificationProvider: async request => receiptVerifier.verify(request),
-  supportedNetworks: ['eip155:84532'],
-  allowedOrigins: ['https://your-payment-resource.example'],
-  routes: [{
-    network: 'eip155:84532',
-    asset: verifiedTokenAddress,
-    payTo: reviewedMerchantAddress,
-    decimals: verifiedTokenDecimals,
-    maxAmountAtomic: reviewedAtomicCap,
-  }],
+  verificationProvider: async (request) => receiptVerifier.verify(request),
+  supportedNetworks: ["eip155:84532"],
+  allowedOrigins: ["https://your-payment-resource.example"],
+  routes: [
+    {
+      network: "eip155:84532",
+      asset: verifiedTokenAddress,
+      payTo: reviewedMerchantAddress,
+      decimals: verifiedTokenDecimals,
+      maxAmountAtomic: reviewedAtomicCap,
+    },
+  ],
   onPaymentRequired: async (intent, { signal }) => {
     return reviewUI.requestExplicitHumanApproval(intent, signal);
   },
@@ -92,3 +94,7 @@ Fresh recovery evidence (2026-10-15):
 - Initial full recovery `npm test`: 265/271 passed across 9 files. Six coordinator-owned discovery regressions were in RED during restoration: private default denial, literal positive authorization, async-policy nondisclosure, HEAD metadata, ambiguous security settings, and bounded paths/headers/capabilities. Reported to the coordinator rather than changing another domain.
 
 Payment recovery is locally verified; final complete-release tests, independent review, CI and merge gates remain coordinator-owned. Historical all-suite counts above are kept as history and not substituted for fresh release evidence.
+
+Additional recovery self-review repair: numeric EIP-3009 validity timestamps and array-coerced address/nonce values were accepted by regular-expression coercion. Nine strict-type regressions failed before explicit string guards. The public serializer, quote parser, route/wallet contexts and settlement payer now reject these malformed values without a signed retry. `npm test -- src/__tests__/x402.test.ts`: 83/83 passed; `npm run typecheck`: passed. Complete current release verification remains coordinator-owned.
+
+After concurrent security/core repairs settled, independent full SDK rerun passed 294/294 tests across 10 files; typecheck passed. This includes all 83 payment tests. An earlier full run overlapping freezeInput relocation had transient reference errors and was explicitly reported to the coordinator; it is superseded by the settled-tree rerun.

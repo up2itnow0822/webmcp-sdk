@@ -13,7 +13,7 @@
  * app.use(webmcpDiscovery());
  * ```
  */
-type MCPCapability = 'tools' | 'resources' | 'prompts' | 'sampling' | 'logging';
+type MCPCapability = "tools" | "resources" | "prompts" | "sampling" | "logging";
 interface WebMCPDiscoveryOptions {
     /** Path to the MCP manifest endpoint. Default: '/mcp' */
     manifestPath?: string;

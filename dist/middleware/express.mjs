@@ -1,12 +1,25 @@
 // src/middleware/express.ts
 function validateOptions(options) {
   const path = options.manifestPath ?? "/mcp";
-  if (typeof path !== "string" || path.length > 256 || !/^\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(path) || path.split("/").some((p) => p === "." || p === "..")) throw new Error("Invalid discovery configuration: canonical local path required");
-  for (const v of [options.version, options.serverName]) if (v !== void 0 && (typeof v !== "string" || v.length < 1 || v.length > 256 || /[^\x20-\x7e]/.test(v))) throw new Error("Invalid discovery configuration: unsafe header");
+  if (typeof path !== "string" || path.length > 256 || !/^\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(path) || path.split("/").some((p) => p === "." || p === ".."))
+    throw new Error(
+      "Invalid discovery configuration: canonical local path required"
+    );
+  for (const v of [options.version, options.serverName])
+    if (v !== void 0 && (typeof v !== "string" || v.length < 1 || v.length > 256 || /[^\x20-\x7e]/.test(v)))
+      throw new Error("Invalid discovery configuration: unsafe header");
   const caps = options.capabilities;
-  const allowed = /* @__PURE__ */ new Set(["tools", "resources", "prompts", "sampling", "logging"]);
-  if (caps !== void 0 && (!Array.isArray(caps) || caps.length > 5 || Array.from(caps).some((v) => !allowed.has(v)) || new Set(caps).size !== caps.length)) throw new Error("Invalid discovery configuration: capabilities");
-  if (options.onlyOnSuccess !== void 0 && typeof options.onlyOnSuccess !== "boolean") throw new Error("Invalid discovery configuration: boolean required");
+  const allowed = /* @__PURE__ */ new Set([
+    "tools",
+    "resources",
+    "prompts",
+    "sampling",
+    "logging"
+  ]);
+  if (caps !== void 0 && (!Array.isArray(caps) || caps.length > 5 || Array.from(caps).some((v) => !allowed.has(v)) || new Set(caps).size !== caps.length))
+    throw new Error("Invalid discovery configuration: capabilities");
+  if (options.onlyOnSuccess !== void 0 && typeof options.onlyOnSuccess !== "boolean")
+    throw new Error("Invalid discovery configuration: boolean required");
 }
 function buildLinkHeader(manifestPath, capabilities) {
   const parts = [`<${manifestPath}>; rel="mcp-manifest"`];
@@ -55,8 +68,14 @@ function webmcpDiscovery(options = {}) {
 }
 function webmcpAutoSetup(options = {}) {
   validateOptions(options);
-  if (options.publicManifest !== void 0 && typeof options.publicManifest !== "boolean") throw new Error("Invalid discovery configuration: publicManifest boolean required");
-  if (options.authorize !== void 0 && typeof options.authorize !== "function") throw new Error("Invalid discovery configuration: authorize function required");
+  if (options.publicManifest !== void 0 && typeof options.publicManifest !== "boolean")
+    throw new Error(
+      "Invalid discovery configuration: publicManifest boolean required"
+    );
+  if (options.authorize !== void 0 && typeof options.authorize !== "function")
+    throw new Error(
+      "Invalid discovery configuration: authorize function required"
+    );
   const {
     tools = [],
     resources = [],
@@ -103,7 +122,11 @@ function webmcpAutoSetup(options = {}) {
   return async function webmcpAutoSetupMiddleware(req, res, next) {
     const url = req.url ?? "";
     const urlWithoutQuery = url.split("?")[0];
-    const isCatalog = [manifestPath, `${manifestPath}/tools`, `${manifestPath}/resources`].includes(urlWithoutQuery);
+    const isCatalog = [
+      manifestPath,
+      `${manifestPath}/tools`,
+      `${manifestPath}/resources`
+    ].includes(urlWithoutQuery);
     if (isCatalog && (req.method === "GET" || req.method === "HEAD")) {
       res.setHeader("Cache-Control", "private, no-store");
       if (!options.publicManifest && !options.authorize) {

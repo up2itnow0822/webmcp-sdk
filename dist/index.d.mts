@@ -1,37 +1,12 @@
-import { W as WebMCPKitConfig, T as ToolInvocationEvent, a as ToolResult, b as WebMCPToolDefinition, R as RegisterToolOptions, I as InvokeOptions, J as JSONSchema, d as ToolExecutionContext, e as ToolAnnotations, f as ToolBuilder } from './types-RmhugU8s.mjs';
-export { g as JSONSchemaProperty, M as ModelContext } from './types-RmhugU8s.mjs';
+import { W as WebMCPKit } from './core-BrxOF8Mf.mjs';
+export { c as createKit, d as defineTool, t as tool } from './core-BrxOF8Mf.mjs';
+import { T as ToolExecutionContext } from './types-CFF4VVYT.mjs';
+export { C as ConfirmationProvider, I as InvokeOptions, J as JSONSchema, a as JSONSchemaProperty, b as JSONSchemaType, L as LegacyModelContext, M as ModelContext, c as ModelContextTool, R as RegisterToolOptions, d as ToolAnnotations, e as ToolBuilder, f as ToolInvocationEvent, g as ToolResult, W as WebMCPKitConfig, h as WebMCPToolDefinition } from './types-CFF4VVYT.mjs';
 
-/** Bounded local execution with observable native-browser registration. */
-
-type CompletionListener = (event: ToolInvocationEvent, result: ToolResult) => void;
-declare class WebMCPKit {
-    private tools;
-    private config;
-    private limiter;
-    private admitted;
-    private registrations;
-    private listeners;
-    private lifetimes;
-    constructor(config?: WebMCPKitConfig);
-    static isAvailable(): boolean;
-    private getFullName;
-    subscribe(listener: CompletionListener): () => void;
-    register<TInput extends Record<string, unknown> = Record<string, unknown>, TOutput = unknown>(tool: WebMCPToolDefinition<TInput, TOutput>, options?: RegisterToolOptions): void;
-    ready(): Promise<void>;
-    unregister(name: string): void;
-    unregisterAll(): void;
-    getTools(): WebMCPToolDefinition[];
-    getTool(name: string): WebMCPToolDefinition | undefined;
-    invoke<T = unknown>(name: string, input: Record<string, unknown>, options?: InvokeOptions): Promise<T>;
-    requestUserInteraction(reason?: string): Promise<boolean>;
-    private reportError;
-    private complete;
-    /** Retain total admission until asynchronous policy/operation work actually quiesces. */
-    private acquireAdmission;
-    private execute;
+interface DeclarativeToolOptions {
+    handlers: Record<string, (input: Record<string, unknown>, context?: ToolExecutionContext) => unknown | Promise<unknown>>;
 }
-declare function tool(name: string): ToolBuilder;
-declare function createKit(config?: WebMCPKitConfig): WebMCPKit;
-declare function defineTool<TInput extends Record<string, unknown>, TOutput>(name: string, description: string, inputSchema: JSONSchema, handler: (input: TInput, context?: ToolExecutionContext) => Promise<TOutput> | TOutput, annotations?: ToolAnnotations): WebMCPToolDefinition<TInput, TOutput>;
+/** Bind form metadata to explicit trusted code; HTML never supplies an executable handler. */
+declare function registerDeclarativeTools(kit: WebMCPKit, root: ParentNode, options: DeclarativeToolOptions): () => void;
 
-export { JSONSchema, RegisterToolOptions, ToolAnnotations, ToolBuilder, ToolInvocationEvent, ToolResult, WebMCPKit, WebMCPKitConfig, WebMCPToolDefinition, createKit, defineTool, tool };
+export { type DeclarativeToolOptions, ToolExecutionContext, WebMCPKit, registerDeclarativeTools };

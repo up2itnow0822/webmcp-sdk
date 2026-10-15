@@ -1,0 +1,3 @@
+# Studio contracts
+
+App worker owns apps/studio only and task5 docs; coordinator root dependencies. Practice default is clearly simulated. Live Base8453 ETH/USDC/WETH transfers and USDC/WETH allowlisted Uniswap swaps only. Immutable account/chain/policy/expiry intents, explicit review/simulation, exact separate token approvals, external wallet signing, exact receipt verification. Agent tools only read state/propose. No arbitrary calldata or key entry. Pending is not failed or confirmed. Signing lease survives timeouts across provider gateway instances. Fresh review generation resets consent. Preserve saved limits across modes and never strand busy on missing lookup. Tests synthetic only; keep production fixture excluded, accessible responsive UI and honest limits.
