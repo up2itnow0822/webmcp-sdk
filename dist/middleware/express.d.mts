@@ -13,7 +13,7 @@
  * app.use(webmcpDiscovery());
  * ```
  */
-type MCPCapability = 'tools' | 'resources' | 'prompts' | 'sampling' | 'logging';
+type MCPCapability = "tools" | "resources" | "prompts" | "sampling" | "logging";
 interface WebMCPDiscoveryOptions {
     /** Path to the MCP manifest endpoint. Default: '/mcp' */
     manifestPath?: string;
@@ -31,6 +31,8 @@ interface WebMCPAutoSetupOptions extends WebMCPDiscoveryOptions {
     tools?: MCPToolDefinition[];
     /** Resource definitions to serve at the manifest endpoint */
     resources?: MCPResourceDefinition[];
+    publicManifest?: boolean;
+    authorize?: (request: IncomingRequest) => boolean | Promise<boolean>;
 }
 interface MCPToolDefinition {
     name: string;
@@ -77,6 +79,6 @@ declare function webmcpDiscovery(options?: WebMCPDiscoveryOptions): (_req: Incom
  * }));
  * ```
  */
-declare function webmcpAutoSetup(options?: WebMCPAutoSetupOptions): (req: IncomingRequest, res: OutgoingResponse, next: NextFunction) => void;
+declare function webmcpAutoSetup(options?: WebMCPAutoSetupOptions): (req: IncomingRequest, res: OutgoingResponse, next: NextFunction) => Promise<void>;
 
-export { type MCPCapability, type MCPResourceDefinition, type MCPToolDefinition, type WebMCPAutoSetupOptions, type WebMCPDiscoveryOptions, webmcpAutoSetup, webmcpDiscovery };
+export { type IncomingRequest, type MCPCapability, type MCPResourceDefinition, type MCPToolDefinition, type WebMCPAutoSetupOptions, type WebMCPDiscoveryOptions, webmcpAutoSetup, webmcpDiscovery };

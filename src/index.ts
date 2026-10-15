@@ -7,7 +7,9 @@
  */
 
 // Core
-export { WebMCPKit, createKit, tool, defineTool } from './core.js';
+export { WebMCPKit, createKit, tool, defineTool } from "./core.js";
+export { registerDeclarativeTools } from "./declarative.js";
+export type { DeclarativeToolOptions } from "./declarative.js";
 
 // Types
 export type {
@@ -21,4 +23,10 @@ export type {
   ToolBuilder,
   RegisterToolOptions,
   ModelContext,
-} from './types.js';
+  ModelContextTool,
+  LegacyModelContext,
+  ToolExecutionContext,
+  InvokeOptions,
+  ConfirmationProvider,
+  JSONSchemaType,
+} from "./types.js";

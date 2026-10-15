@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
@@ -8,18 +8,19 @@ export default defineConfig([
       // bundled through src/index.ts (re-exported via `export { ... } from './core.js'`).
       // Adding core.ts as a separate entry would produce a redundant dist/core.js and
       // break consumers that import only from the package root.
-      index: 'src/index.ts',
-      react: 'src/react.ts',
-      security: 'src/security.ts',
-      testing: 'src/testing.ts',
-      'middleware/express': 'src/middleware/express.ts',
-      x402: 'src/x402.ts',
+      index: "src/index.ts",
+      react: "src/react.ts",
+      security: "src/security.ts",
+      testing: "src/testing.ts",
+      "middleware/express": "src/middleware/express.ts",
+      x402: "src/x402.ts",
     },
-    format: ['cjs', 'esm'],
+    format: ["cjs", "esm"],
     dts: true,
     splitting: false,
     sourcemap: true,
     clean: true,
-    external: ['react'],
+    external: ["react"],
+    noExternal: ["@cfworker/json-schema"],
   },
 ]);

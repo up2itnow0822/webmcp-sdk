@@ -1,0 +1,24 @@
+{
+  "name": "@webmcp/studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "dev:test": "vite --mode test --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run --config vitest.config.ts",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "webmcp-sdk": "file:../..",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^19.0.0",
+    "vite": "8.3.4",
+    "@vitejs/plugin-react": "^5.0.0"
+  }
+}

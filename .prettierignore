@@ -1,0 +1,10 @@
+node_modules/
+dist/
+apps/studio/dist/
+package-lock.json
+test-results/
+playwright-report/
+artifacts/
+python/build/
+python/*.egg-info/
+*.tgz
