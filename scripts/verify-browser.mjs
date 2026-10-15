@@ -14,6 +14,7 @@ import { once } from "node:events";
 import { chromium, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { inflate } from "@sparticuz/chromium";
+import { isViteReadyOutput } from "./vite-readiness.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const appRoot = resolve(root, "apps/studio");
@@ -209,7 +210,7 @@ async function waitForVite(child) {
       throw new Error(
         `Fixture Vite exited (${child.exitCode ?? child.signalCode}): ${viteOutput}`,
       );
-    if (!/\bVITE v[^\r\n]*\bready in\b/.test(viteOutput)) {
+    if (!isViteReadyOutput(viteOutput)) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       continue;
     }

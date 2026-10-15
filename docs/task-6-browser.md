@@ -49,3 +49,9 @@ Cleanup is attempted for context, browser, Vite and HTTP server even if an earli
 After moving the existing JSON freeze helper into input.ts for the security worker's confirmation TOCTOU repair, SDK `npm test` passed **294/294 (10 files)** and `npm run typecheck` passed. An intermediate import omission was detected by typecheck and corrected before this green result. Root owns final rebuild, formatting, packed artifacts, complete release gate and CI checks on the reviewed commit.
 
 These are actual native local-browser and deterministic fixture results, not live-funded transaction verification, facilitator verification, irreversible chain finality or universal client support. The test-mode server deliberately contains a fake wallet; the separate production-build check excludes it.
+
+## GitHub Actions colored-output regression
+
+Initial remote Node22/24 jobs passed SDK294 and Studio35, builds and packed consumers, then timed out waiting for Vite despite a visible ready banner. GitHub Actions inserted ANSI control sequences inside `VITE v... ready in`; the exact readiness regex tested raw colored output. A captured colored-log unit case failed before normalization (1RED/3cases). The helper now removes VT control characters before applying the unchanged strict ready-banner pattern, retaining the occupied-port negative guard. Coordinator reruns full browser under FORCE_COLOR=1 and all release gates before pushing this CI repair. No production feature or test is suppressed.
+
+Colored-output repair verification: captured3-case helper regression nowGREEN3/3; FORCE_COLOR=1 npm run verify:browser passes7/7 withzero pageerrors/Axeviolations, exact390px layout and3deterministic wallet sends. No realfunds.
