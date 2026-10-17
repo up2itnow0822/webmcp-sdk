@@ -2,7 +2,6 @@
 
 > **Payment rails pause (2026-10-17):** Do not pair examples here with `agentwallet-sdk` / `agentpay-mcp` / `webmcp-payments` or agent private-key env vars for live spend until contract-level enforcement unpauses those rails.
 
-
 The baseline implementation returned `success: true` and a fabricated `0x_pending_implementation` hash without wallet authorization, settlement or a resource retry. It used `parseFloat` and compared token values with a USD threshold. The repair never treats readiness, a signature, a submitted transaction, or a server's settlement claim as success.
 
 ## Supported protocol and units
