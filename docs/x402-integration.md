@@ -1,5 +1,8 @@
 # x402 integration contract
 
+> **Payment rails pause (2026-10-17):** Do not pair examples here with `agentwallet-sdk` / `agentpay-mcp` / `webmcp-payments` or agent private-key env vars for live spend until contract-level enforcement unpauses those rails.
+
+
 The SDK supplies transport/policy; applications supply trustworthy wallet authorization and independent settlement verification. Supported wire format is x402 V2 `exact`, EVM CAIP-2 networks and EIP-3009 authorization. Other schemes/versions fail closed. Studio wallet transfers/swaps are separate.
 
 ## Required interfaces

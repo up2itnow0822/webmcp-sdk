@@ -84,6 +84,8 @@ Use `WebMCPProvider` from `webmcp-sdk/react` to scope session policy. Tool hooks
 
 ## x402 and discovery
 
+> **Payment rails pause (2026-10-17):** Do **not** wire this SDK to `agentwallet-sdk`, `agentpay-mcp`, or `webmcp-payments`, and do **not** use agent hot-wallet / `AGENT_PRIVATE_KEY` examples for live spend. Those rails are paused for security maintenance pending contract-level enforcement (Safe + Zodiac / AgentSpendModule). Prefer an external noncustodial adapter only after explicit product GO.
+
 `webmcp-sdk/x402` provides x402 V2 exact EVM EIP-3009 challenge/sign/retry/verify flow. Applications supply an external-wallet adapter, explicit approval for every payment, allowed origins/routes/caps and an independent settlement verifier. There is no private-key adapter or fabricated success fallback. Unknown post-submission outcomes stay pending. The Studio's wallet flow is separate from x402; its tools remain proposal-only. See the [integration contract](docs/x402-integration.md).
 
 `webmcp-sdk/middleware/express` serves discovery metadata, not an execution transport or authentication system. Catalogs deny by default: supply an authorizer returning literal `true`, or deliberately choose `publicManifest: true`. Catalog responses use `private, no-store`. Actual operations need separate authentication and authorization.
