@@ -11,14 +11,14 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
-    "webmcp-sdk": "file:../..",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "viem": "^2.38.0"
+    "viem": "^2.57.11",
+    "webmcp-sdk": "file:../.."
   },
   "devDependencies": {
     "@types/react-dom": "^19.0.0",
-    "vite": "8.3.5",
-    "@vitejs/plugin-react": "^5.0.0"
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "8.3.5"
   }
 }
