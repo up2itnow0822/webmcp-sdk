@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "webmcp-sdk": "file:../..",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "viem": "^2.38.0"
   },
   "devDependencies": {
