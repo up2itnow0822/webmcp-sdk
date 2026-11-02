@@ -13,7 +13,7 @@
   "dependencies": {
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "viem": "^2.57.11",
+    "viem": "^2.57.13",
     "webmcp-sdk": "file:../.."
   },
   "devDependencies": {
