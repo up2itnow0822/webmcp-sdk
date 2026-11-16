@@ -119,7 +119,7 @@
     "vite": "8.3.5"
   },
   "dependencies": {
-    "@cfworker/json-schema": "4.1.1"
+    "@cfworker/json-schema": "4.1.6"
   },
   "workspaces": [
     "apps/studio"
